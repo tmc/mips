@@ -1,0 +1,9 @@
+REGISTERS
+MEMORY 
+CODE
+      LD    R2,     0(R1)
+      DADD  R4,     R2,    R3
+      SD    0(R1),  R4
+      BNEZ  R4,     NEXT
+NEXT: DADD  R1,     R1,    R3
+      DADDI R2,     R1,    #8
