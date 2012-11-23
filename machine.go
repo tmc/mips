@@ -53,7 +53,7 @@ type Registers [numRegisters]Word
 
 type Memory [memorySize]Word
 
-type Code []Instruction
+type Code []*Instruction
 
 type Operation struct {
 	op string
@@ -76,8 +76,10 @@ type Operand struct {
 	Type     OperandType
 }
 
+type Label string
+
 type Instruction struct {
-	label       string
+	Label       Label
 	text        string
 	Operation   Operation
 	Destination Operand
@@ -85,13 +87,12 @@ type Instruction struct {
 	OperandB    Operand
 }
 
-type Label string
 
 type Machine struct {
 	State  MachineState
 	Ram    Memory
 	Code   Code
-	Labels map[Label]Word
+	Labels map[Label]int // label to Code index mapping
 }
 
 type MachineState struct {
@@ -99,7 +100,10 @@ type MachineState struct {
 }
 
 func NewMachine() *Machine {
-	return &Machine{}
+	return &Machine{
+		Code: make([]*Instruction, 0),
+		Labels: make(map[Label]int),
+	}
 }
 
 func (w Word) String() string {
@@ -160,8 +164,8 @@ func (i Instruction) String() string {
 		result += fmt.Sprintf(" %s", i.OperandB)
 	}
 	//result := fmt.Sprintf("%s %s", i.Operation, i.Destination)
-	if i.label != "" {
-		result += fmt.Sprintf(" (label: %s)", i.label)
+	if i.Label != "" {
+		result += fmt.Sprintf(" (label: %s)", i.Label)
 	}
 	return result
 }

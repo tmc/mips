@@ -222,7 +222,7 @@ func (ip *instructionParser) Parse() (i *Instruction, err error) {
 			//fmt.Println("startState:", parts)
 
 		case stateLabel:
-			i.label = parts[0][:strings.Index(parts[0], ":")]
+			i.Label = Label(parts[0][:strings.Index(parts[0], ":")])
 			parts = parts[1:]
 			ip.state = stateOperation
 			//fmt.Println("stateLabel:", parts)
