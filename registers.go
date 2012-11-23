@@ -46,7 +46,6 @@ const (
 
 type Registers [numRegisters]Word
 
-
 func (r Registers) String() string {
 	result := ""
 	for i := 0; i < numRegisters; i++ {

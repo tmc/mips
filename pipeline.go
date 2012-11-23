@@ -18,15 +18,15 @@ type PipelineStage interface {
 	TransferInstruction()
 	Next() PipelineStage
 	Prev() PipelineStage
-	SetNext(PipelineStage) 
-	SetPrev(PipelineStage) 
+	SetNext(PipelineStage)
+	SetPrev(PipelineStage)
 }
 
 type baseStage struct {
 	Instruction *InstructionInPipeline
-	cpu *CPU
-	next PipelineStage
-	prev PipelineStage
+	cpu         *CPU
+	next        PipelineStage
+	prev        PipelineStage
 }
 
 func (s *baseStage) Initialize(cpu *CPU) {
@@ -84,7 +84,7 @@ type IF1 struct {
 
 func (s *IF1) Step() error {
 	fmt.Println("IF1 executed.")
-	
+
 	fmt.Println(s.cpu)
 	if s.cpu.InstructionPointer == len(s.cpu.Code) {
 		fmt.Println("No more instructions")
@@ -103,7 +103,6 @@ func (s *IF1) Step() error {
 func (s IF1) String() string {
 	return "IF1"
 }
-
 
 /////////////////////////////////////////////////////////////////////////////
 // 
@@ -201,4 +200,3 @@ func (s *WB) Step() error {
 	}
 	return nil
 }
-

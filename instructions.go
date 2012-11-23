@@ -37,7 +37,6 @@ type Instruction struct {
 	OperandB    Operand
 }
 
-
 func (op Operation) String() string {
 	return op.op
 }

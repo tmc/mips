@@ -48,81 +48,81 @@ func testCPUsEqual(m1, m2 *CPU) bool {
 	if m1 == nil && m2 == nil {
 		return true
 	}
-	stateAndRamEqual := m1.State == m2.State && m1.Ram == m2.Ram
+	stateAndRamEqual := m2.Registers == m2.Registers && m1.Ram == m2.Ram
 	return stateAndRamEqual && m1.Code.Equals(m2.Code)
 }
 
 func TestParsingSmallest(t *testing.T) {
-	m, err := ParseCPU(testLiteral(CPU_TESTS[0]))
+	cpu, err := ParseCPU(testLiteral(CPU_TESTS[0]))
 	if err != nil {
 		t.Error(err)
 	}
-	if testCPUsEqual(m, NewCPU()) == false {
+	if testCPUsEqual(cpu, NewCPU()) == false {
 		t.Error("Parsing of smallest doesn't match empty cpu")
 	}
 }
 
 func TestParsingSimpleRegisterSet(t *testing.T) {
-	m, err := ParseCPU(testLiteral(CPU_TESTS[1]))
+	cpu, err := ParseCPU(testLiteral(CPU_TESTS[1]))
 	if err != nil {
 		t.Error(err)
 	}
-	if m == nil {
+	if cpu == nil {
 		t.Error("cpu == nil")
 	}
-	if m.State.Registers[R1] != 4 {
+	if cpu.Registers[R1] != 4 {
 		t.Fail()
 	}
 }
 
 func TestParsingRegistersAndMemorySet(t *testing.T) {
-	m, err := ParseCPU(testLiteral(CPU_TESTS[2]))
+	cpu, err := ParseCPU(testLiteral(CPU_TESTS[2]))
 	if err != nil {
 		t.Error(err)
 	}
-	if m == nil {
+	if cpu == nil {
 		t.Error("cpu == nil")
 	}
-	if m.State.Registers[R1] != 42 {
+	if cpu.Registers[R1] != 42 {
 		t.Error("R1 != 42")
 	}
-	if m.State.Registers[R7] != 13 {
+	if cpu.Registers[R7] != 13 {
 		t.Error("R7 != 13")
 	}
-	if m.State.Registers[R0] != 0 {
+	if cpu.Registers[R0] != 0 {
 		t.Error("R0 != 0")
 	}
-	if m.Ram[42] != 31337 {
+	if cpu.Ram[42] != 31337 {
 		t.Error("Mem[42] != 31337")
 	}
 }
 
 func TestParsingProvided0(t *testing.T) {
-	m, err := ParseCPU(testFile("input-0.txt"))
+	cpu, err := ParseCPU(testFile("input-0.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if testCPUsEqual(m, NewCPU()) == true {
+	if testCPUsEqual(cpu, NewCPU()) == true {
 		t.Error("Parsing provided example 0 produced empty cpu")
 	}
 }
 
 func TestParsingProvided1(t *testing.T) {
-	m, err := ParseCPU(testFile("input-1.txt"))
+	cpu, err := ParseCPU(testFile("input-1.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if testCPUsEqual(m, NewCPU()) == true {
+	if testCPUsEqual(cpu, NewCPU()) == true {
 		t.Error("Parsing provided example 1 produced empty cpu")
 	}
 }
 
 func TestParsingProvided2(t *testing.T) {
-	m, err := ParseCPU(testFile("input-2.txt"))
+	cpu, err := ParseCPU(testFile("input-2.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if testCPUsEqual(m, NewCPU()) == true {
+	if testCPUsEqual(cpu, NewCPU()) == true {
 		t.Error("Parsing provided example 2 produced empty cpu")
 	}
 }

@@ -26,7 +26,7 @@ const (
 )
 
 type cpuParser struct {
-	cpu     *CPU
+	cpu         *CPU
 	lines       []string
 	currentLine int
 	state       parserState
@@ -35,8 +35,8 @@ type cpuParser struct {
 func newCPUParser(cpu *CPU, input io.Reader) (*cpuParser, error) {
 	content, err := ioutil.ReadAll(input)
 	mp := &cpuParser{
-		cpu: cpu,
-		lines:   strings.Split(string(content), "\n"),
+		cpu:   cpu,
+		lines: strings.Split(string(content), "\n"),
 	}
 	return mp, err
 }
@@ -91,7 +91,7 @@ func (mp *cpuParser) Parse() (m *CPU, err error) {
 				if err != nil {
 					return nil, err
 				}
-				m.State.Registers.Set(operand.Register, Word(intVal))
+				m.Registers.Set(operand.Register, Word(intVal))
 			}
 		case stateMemory:
 			if s, _ := mp.next(); s == "CODE" {

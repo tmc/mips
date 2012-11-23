@@ -11,22 +11,18 @@ type Code []*Instruction
 var CPUFinished = errors.New("CPU Finished.")
 
 type CPU struct {
-	State              CPUState
+	Registers          Registers
 	Cycle              int
 	Ram                Memory
 	Code               Code
 	InstructionPointer int
 	Labels             map[Label]int // label to Code index mapping
 	//Pipeline *InstructionPipeline
-	Stages       []PipelineStage
-}
-
-type CPUState struct {
-	Registers
+	Stages []PipelineStage
 }
 
 func NewCPU() *CPU {
-	m := &CPU{
+	cpu := &CPU{
 		Code:   make([]*Instruction, 0),
 		Labels: make(map[Label]int),
 		Stages: []PipelineStage{
@@ -36,19 +32,19 @@ func NewCPU() *CPU {
 			new(WB),
 		},
 	}
-	for i,stage := range m.Stages {
-		stage.Initialize(m)
+	for i, stage := range cpu.Stages {
+		stage.Initialize(cpu)
 		if i > 0 {
-			stage.SetPrev(m.Stages[i-1])
-			m.Stages[i-1].SetNext(stage)
+			stage.SetPrev(cpu.Stages[i-1])
+			cpu.Stages[i-1].SetNext(stage)
 		}
 	}
-	return m
+	return cpu
 }
 
-func (m *CPU) Run() (err error) {
+func (cpu *CPU) Run() (err error) {
 	for err == nil {
-		err = m.Step()
+		err = cpu.Step()
 	}
 	if err == CPUFinished {
 		return nil
@@ -56,29 +52,29 @@ func (m *CPU) Run() (err error) {
 	return err
 }
 
-func (m *CPU) Step() error {
-	fmt.Println("#################### CYCLE", m.Cycle, "####################")
+func (cpu *CPU) Step() error {
+	fmt.Println("#################### CYCLE", cpu.Cycle, "####################")
 
 	// Move instructions to next stage of pipeline
-	for i := len(m.Stages)-1; i >= 0; i-- {
-		m.Stages[i].TransferInstruction()
+	for i := len(cpu.Stages) - 1; i >= 0; i-- {
+		cpu.Stages[i].TransferInstruction()
 	}
-	
-	for i, stage := range m.Stages {
-		fmt.Println("#################### CYCLE", m.Cycle, "stage", i, stage)
+
+	for i, stage := range cpu.Stages {
+		fmt.Println("#################### CYCLE", cpu.Cycle, "stage", i, stage)
 		err := stage.Step()
 		if err != nil {
 			return err
 		}
 	}
 
-	m.Cycle += 1
+	cpu.Cycle += 1
 	return nil
 }
 
-func (m *CPU) GetNextStage(s1 PipelineStage) PipelineStage {
+func (cpu *CPU) GetNextStage(s1 PipelineStage) PipelineStage {
 	s1Index := -1
-	for i,stage := range m.Stages {
+	for i, stage := range cpu.Stages {
 		if s1Index != -1 {
 			return stage
 		}
@@ -86,12 +82,12 @@ func (m *CPU) GetNextStage(s1 PipelineStage) PipelineStage {
 			s1Index = i
 		}
 	}
-	return m.Stages[0]
+	return cpu.Stages[0]
 }
 
-func (m *CPU) GetPreviousStage(s1 PipelineStage) PipelineStage {
+func (cpu *CPU) GetPreviousStage(s1 PipelineStage) PipelineStage {
 	s1Index := -1
-	for i,stage := range m.Stages {
+	for i, stage := range cpu.Stages {
 		fmt.Println("eq?", stage, s1)
 		if stage == s1 {
 			s1Index = i
@@ -99,11 +95,10 @@ func (m *CPU) GetPreviousStage(s1 PipelineStage) PipelineStage {
 	}
 	fmt.Println("GPS", s1Index)
 	if s1Index > 0 {
-		return m.Stages[s1Index]
+		return cpu.Stages[s1Index]
 	}
 	return nil
 }
-
 
 func (lhs Code) Equals(rhs Code) bool {
 	if len(lhs) != len(rhs) {
@@ -117,7 +112,6 @@ func (lhs Code) Equals(rhs Code) bool {
 	return true
 }
 
-
-func (m *CPU) String() string {
-	return fmt.Sprintf("REGISTERS: %s\nMEMORY: %s", m.State.Registers, m.Ram)
+func (cpu *CPU) String() string {
+	return fmt.Sprintf("REGISTERS: %s\nMEMORY: %s", cpu.Registers, cpu.Ram)
 }
