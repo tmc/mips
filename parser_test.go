@@ -24,7 +24,7 @@ func testLiteral(test string) io.Reader {
 	return strings.NewReader(test)
 }
 
-var MACHINE_TESTS = []string{
+var CPU_TESTS = []string{
 	// Empty case
 	`REGISTERS
 MEMORY
@@ -44,7 +44,7 @@ MEMORY
 CODE`,
 }
 
-func testMachinesEqual(m1, m2 *Machine) bool {
+func testCPUsEqual(m1, m2 *CPU) bool {
 	if m1 == nil && m2 == nil {
 		return true
 	}
@@ -53,22 +53,22 @@ func testMachinesEqual(m1, m2 *Machine) bool {
 }
 
 func TestParsingSmallest(t *testing.T) {
-	m, err := ParseMachine(testLiteral(MACHINE_TESTS[0]))
+	m, err := ParseCPU(testLiteral(CPU_TESTS[0]))
 	if err != nil {
 		t.Error(err)
 	}
-	if testMachinesEqual(m, NewMachine()) == false {
-		t.Error("Parsing of smallest doesn't match empty machine")
+	if testCPUsEqual(m, NewCPU()) == false {
+		t.Error("Parsing of smallest doesn't match empty cpu")
 	}
 }
 
 func TestParsingSimpleRegisterSet(t *testing.T) {
-	m, err := ParseMachine(testLiteral(MACHINE_TESTS[1]))
+	m, err := ParseCPU(testLiteral(CPU_TESTS[1]))
 	if err != nil {
 		t.Error(err)
 	}
 	if m == nil {
-		t.Error("machine == nil")
+		t.Error("cpu == nil")
 	}
 	if m.State.Registers[R1] != 4 {
 		t.Fail()
@@ -76,12 +76,12 @@ func TestParsingSimpleRegisterSet(t *testing.T) {
 }
 
 func TestParsingRegistersAndMemorySet(t *testing.T) {
-	m, err := ParseMachine(testLiteral(MACHINE_TESTS[2]))
+	m, err := ParseCPU(testLiteral(CPU_TESTS[2]))
 	if err != nil {
 		t.Error(err)
 	}
 	if m == nil {
-		t.Error("machine == nil")
+		t.Error("cpu == nil")
 	}
 	if m.State.Registers[R1] != 42 {
 		t.Error("R1 != 42")
@@ -98,37 +98,34 @@ func TestParsingRegistersAndMemorySet(t *testing.T) {
 }
 
 func TestParsingProvided0(t *testing.T) {
-	m, err := ParseMachine(testFile("input-0.txt"))
+	m, err := ParseCPU(testFile("input-0.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if testMachinesEqual(m, NewMachine()) == true {
-		t.Error("Parsing provided example 0 produced empty machine")
+	if testCPUsEqual(m, NewCPU()) == true {
+		t.Error("Parsing provided example 0 produced empty cpu")
 	}
 }
-
 
 func TestParsingProvided1(t *testing.T) {
-	m, err := ParseMachine(testFile("input-1.txt"))
+	m, err := ParseCPU(testFile("input-1.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if testMachinesEqual(m, NewMachine()) == true {
-		t.Error("Parsing provided example 1 produced empty machine")
+	if testCPUsEqual(m, NewCPU()) == true {
+		t.Error("Parsing provided example 1 produced empty cpu")
 	}
 }
-
 
 func TestParsingProvided2(t *testing.T) {
-	m, err := ParseMachine(testFile("input-2.txt"))
+	m, err := ParseCPU(testFile("input-2.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if testMachinesEqual(m, NewMachine()) == true {
-		t.Error("Parsing provided example 2 produced empty machine")
+	if testCPUsEqual(m, NewCPU()) == true {
+		t.Error("Parsing provided example 2 produced empty cpu")
 	}
 }
-
 
 var INSTRUCTION_TESTS = `Loop: LD    R2,    0(R1) 
       DADD  R4,    R2,    R3

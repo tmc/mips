@@ -25,27 +25,27 @@ const (
 	stateOperand2
 )
 
-type machineParser struct {
-	machine     *Machine
+type cpuParser struct {
+	cpu     *CPU
 	lines       []string
 	currentLine int
 	state       parserState
 }
 
-func newMachineParser(machine *Machine, input io.Reader) (*machineParser, error) {
+func newCPUParser(cpu *CPU, input io.Reader) (*cpuParser, error) {
 	content, err := ioutil.ReadAll(input)
-	mp := &machineParser{
-		machine: machine,
+	mp := &cpuParser{
+		cpu: cpu,
 		lines:   strings.Split(string(content), "\n"),
 	}
 	return mp, err
 }
 
-func (mp *machineParser) current() string {
+func (mp *cpuParser) current() string {
 	return strings.TrimSpace(mp.lines[mp.currentLine])
 }
 
-func (mp *machineParser) next() (string, error) {
+func (mp *cpuParser) next() (string, error) {
 	mp.currentLine += 1
 	if mp.currentLine >= len(mp.lines) {
 		return "", io.EOF
@@ -53,19 +53,19 @@ func (mp *machineParser) next() (string, error) {
 	return strings.TrimSpace(mp.lines[mp.currentLine]), nil
 }
 
-func (mp *machineParser) peek() (string, error) {
+func (mp *cpuParser) peek() (string, error) {
 	defer func() {
 		mp.currentLine -= 1
 	}()
 	return mp.next()
 }
 
-func (mp *machineParser) parseError(msg string) error {
+func (mp *cpuParser) parseError(msg string) error {
 	return errors.New(fmt.Sprintf("(line %d: %s) %s", mp.currentLine, mp.current(), msg))
 }
 
-func (mp *machineParser) Parse() (m *Machine, err error) {
-	m = mp.machine
+func (mp *cpuParser) Parse() (m *CPU, err error) {
+	m = mp.cpu
 	for mp.state != stateFinished {
 		switch mp.state {
 		case stateStart:
@@ -122,9 +122,9 @@ func (mp *machineParser) Parse() (m *Machine, err error) {
 				if err != nil {
 					return nil, mp.parseError(fmt.Sprintf("Instruction parse error: %s", err))
 				}
-				mp.machine.Code = append(mp.machine.Code, op)
+				mp.cpu.Code = append(mp.cpu.Code, op)
 				if op.Label != "" {
-					mp.machine.Labels[op.Label] = len(mp.machine.Code)
+					mp.cpu.Labels[op.Label] = len(mp.cpu.Code)
 				}
 			}
 		}
@@ -132,8 +132,12 @@ func (mp *machineParser) Parse() (m *Machine, err error) {
 	return m, nil
 }
 
-func ParseMachine(input io.Reader) (*Machine, error) {
-	p, err := newMachineParser(NewMachine(), input)
+func ParseCPUString(input string) (*CPU, error) {
+	return ParseCPU(strings.NewReader(input))
+}
+
+func ParseCPU(input io.Reader) (*CPU, error) {
+	p, err := newCPUParser(NewCPU(), input)
 	if err != nil {
 		return nil, err
 	}
