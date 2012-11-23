@@ -62,8 +62,10 @@ type Operation struct {
 type OperandType int
 
 const (
-	operandTypeImmediate OperandType = iota
+	operandTypeInvalid OperandType = iota
+	operandTypeImmediate
 	operandTypeOffset
+	operandTypeNormal
 	operandTypeLabel
 )
 
@@ -108,7 +110,7 @@ func (r Registers) String() string {
 	result := ""
 	for i := 0; i < numRegisters; i++ {
 		if r[i] != 0 {
-			result += fmt.Sprintf("\nR%d = %d", i, r[i])
+			result += fmt.Sprintf("\n%s = %d", i, r[i])
 		}
 	}
 	return result
@@ -128,6 +130,40 @@ func (r *Registers) Get(register Register) Word {
 		return 0
 	}
 	return r[register]
+}
+
+func (r Register) String() string {
+	return fmt.Sprintf("R%d", uint64(r))
+}
+
+func (op Operation) String() string {
+	return op.op
+}
+
+func (op Operand) String() string {
+	switch op.Type {
+	case operandTypeImmediate:
+		return fmt.Sprintf("#%d", op.Offset)
+	case operandTypeNormal:
+		return fmt.Sprintf("%s", op.Register)
+	case operandTypeOffset:
+		return fmt.Sprintf("%d(%s)", op.Offset, op.Register)
+	case operandTypeLabel:
+		return op.text
+	}
+	return "@unknown@"
+}
+
+func (i Instruction) String() string {
+	result := fmt.Sprintf("%s %s %s", i.Operation, i.Destination, i.OperandA)
+	if i.OperandB.Type != operandTypeInvalid {
+		result += fmt.Sprintf(" %s", i.OperandB)
+	}
+	//result := fmt.Sprintf("%s %s", i.Operation, i.Destination)
+	if i.label != "" {
+		result += fmt.Sprintf(" (label: %s)", i.label)
+	}
+	return result
 }
 
 func (lhs Code) Equals(rhs Code) bool {

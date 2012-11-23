@@ -128,6 +128,6 @@ func TestInstructionParsing(t *testing.T) {
 		if err != nil {
 			t.Error(line, err)
 		}
-		fmt.Println(idx, i, "\n")
+		fmt.Println(idx, i)
 	}
 }

@@ -151,7 +151,7 @@ func ParseOperand(s string) (o Operand, err error) {
 			return o, err
 		}
 		o.Register = Register(iVal)
-		o.Type = operandTypeOffset
+		o.Type = operandTypeNormal
 		//16(R2)
 	} else if strings.Index(s, "(") != -1 && strings.Index(s, ")") != -1 {
 		parenOpen := strings.Index(s, "(")
@@ -219,10 +219,9 @@ func (ip *instructionParser) Parse() (i *Instruction, err error) {
 			} else {
 				ip.state = stateOperation
 			}
-			fmt.Println("startState:", parts)
+			//fmt.Println("startState:", parts)
 
 		case stateLabel:
-			fmt.Println("label")
 			i.label = parts[0][:strings.Index(parts[0], ":")]
 			parts = parts[1:]
 			ip.state = stateOperation
