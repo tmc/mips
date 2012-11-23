@@ -239,7 +239,10 @@ func (ip *instructionParser) Parse() (i *Instruction, err error) {
 			//fmt.Println("stateLabel:", parts)
 
 		case stateOperation:
-			i.Operation.op = parts[0]
+			i.Operation, err = NewOperation(parts[0])
+			if err != nil {
+				return nil, err
+			}
 			parts = parts[1:]
 			ip.state = stateDestination
 			//fmt.Println("changing to dest:", parts)
