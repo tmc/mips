@@ -77,10 +77,10 @@ func (mp *machineParser) Parse() (m *Machine, err error) {
 			if s, _ := mp.next(); s == "MEMORY" {
 				mp.state = stateMemory
 			} else {
-				parts := strings.Split(mp.current(), " ")
-
+				parts := removeEmpty(strings.Split(mp.current(), " "))
+				fmt.Println(parts, len(parts))
 				if len(parts) != 2 {
-					return nil, mp.parseError("unexpected number of pargs in register statement")
+					return nil, mp.parseError("unexpected number of parts in register statement")
 				}
 				reg, val := parts[0], parts[1]
 				operand, err := ParseOperand(reg)
@@ -97,7 +97,7 @@ func (mp *machineParser) Parse() (m *Machine, err error) {
 			if s, _ := mp.next(); s == "CODE" {
 				mp.state = stateCode
 			} else {
-				parts := strings.Split(mp.current(), " ")
+				parts := removeEmpty(strings.Split(mp.current(), " "))
 
 				if len(parts) != 2 {
 					return nil, mp.parseError("unexpected number of pargs in memory statement")
@@ -114,11 +114,18 @@ func (mp *machineParser) Parse() (m *Machine, err error) {
 				m.Ram[memPos] = Word(intVal)
 			}
 		case stateCode:
-			fmt.Println("code", mp.current())
-			if _, e := mp.next(); e == io.EOF {
+			if _, e := mp.next(); e == io.EOF || mp.current() == "" {
 				mp.state = stateFinished
 			} else {
 				fmt.Println("process code: ", mp.current())
+				op, err := ParseInstruction(strings.NewReader(mp.current()))
+				if err != nil {
+					return nil, mp.parseError(fmt.Sprintf("Instruction parse error: %s", err))
+				}
+				mp.machine.Code = append(mp.machine.Code, op)
+				if op.Label != "" {
+					mp.machine.Labels[op.Label] = len(mp.machine.Code)
+				}
 			}
 		}
 	}

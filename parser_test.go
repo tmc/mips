@@ -100,12 +100,35 @@ func TestParsingRegistersAndMemorySet(t *testing.T) {
 func TestParsingProvided0(t *testing.T) {
 	m, err := ParseMachine(testFile("input-0.txt"))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if testMachinesEqual(m, NewMachine()) == true {
 		t.Error("Parsing provided example 0 produced empty machine")
 	}
 }
+
+
+func TestParsingProvided1(t *testing.T) {
+	m, err := ParseMachine(testFile("input-1.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if testMachinesEqual(m, NewMachine()) == true {
+		t.Error("Parsing provided example 1 produced empty machine")
+	}
+}
+
+
+func TestParsingProvided2(t *testing.T) {
+	m, err := ParseMachine(testFile("input-2.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if testMachinesEqual(m, NewMachine()) == true {
+		t.Error("Parsing provided example 2 produced empty machine")
+	}
+}
+
 
 var INSTRUCTION_TESTS = `Loop: LD    R2,    0(R1) 
       DADD  R4,    R2,    R3
