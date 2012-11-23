@@ -145,12 +145,28 @@ Next: LD    R6,    0(R5)
 `
 
 func TestInstructionParsing(t *testing.T) {
-	fmt.Println(None, R0, R1, R2)
-	for idx, line := range strings.Split(strings.TrimSpace(INSTRUCTION_TESTS), "\n") {
+	actual := ""
+	expected := `LD R2 0(R1) (label: Loop)
+DADD R4 R2 R3
+SD 0(R1) R4
+DADDI R1 R1 #-8
+BNEZ R1 Loop
+DADDI R1 R1 #-8
+BNEZ R1 Next
+DADD R3 R4 R5
+LD R6 0(R5) (label: Next)
+DADD R4 R2 R3
+SD 0(R5) R4
+DADDI R1 R1 #-8
+`
+	for _, line := range strings.Split(strings.TrimSpace(INSTRUCTION_TESTS), "\n") {
 		i, err := ParseInstruction(strings.NewReader(line))
 		if err != nil {
 			t.Error(line, err)
 		}
-		fmt.Println(idx, i)
+		actual += fmt.Sprintln(i)
+	}
+	if expected != actual {
+		t.Errorf("Expected != Actual: '%s' != '%s'", expected, actual)
 	}
 }
