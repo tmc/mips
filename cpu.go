@@ -6,13 +6,13 @@ import (
 	"fmt"
 )
 
-type CPUMode int
+// Branch prediction modes
+type CPUBranchMode int
 
 const (
-	ModeNoPipeline = iota
-	ModeNoForwardingOrBypassing
-	ModeBranchPredictionTaken
-	ModeBranchPredictionNotTaken
+	branchModeFlush = iota // no prediction, flush pipeline
+	branchModePredictTaken
+	branchModePredictNotTaken
 )
 
 type InstructionCache []Instruction
@@ -21,7 +21,8 @@ var CPUFinished = errors.New("CPU Finished.")
 
 type CPU struct {
 	Registers          Registers
-	Mode               CPUMode
+	BranchMode         CPUBranchMode
+	ForwardingEnabled  bool
 	Cycle              int
 	Ram                Memory
 	InstructionCache   InstructionCache

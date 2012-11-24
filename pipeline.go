@@ -159,11 +159,9 @@ type IF1 struct{ stage }
 func (s IF1) String() string { return "IF1" }
 
 func (s *IF1) Step() error {
-	// if not pipelining, disable instruction fetch until pipeline is empty
-	if s.cpu.Mode == ModeNoPipeline && s.cpu.Pipeline.Empty() == false {
-		//fmt.Println("waiting for pipeline to empty")
-		return nil
-	}
+	//if s.cpu.Mode == ModeNoPipeline && s.cpu.Pipeline.Empty() == false {
+	//	return nil
+	//}
 
 	if s.cpu.InstructionCacheEmpty() {
 		//fmt.Println("No more instructions")

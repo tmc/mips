@@ -264,6 +264,10 @@ func (ip *instructionParser) Parse() (i Instruction, err error) {
 		case stateOperand1:
 			parts[0] = strings.Trim(parts[0], ",")
 			operandA, err := ParseOperand(parts[0])
+			if operandA.Type == operandTypeInvalid {
+				fmt.Println(parts)
+				return nil, errors.New("Invalid operand type")
+			}
 			if err != nil {
 				return nil, err
 			}
@@ -278,6 +282,10 @@ func (ip *instructionParser) Parse() (i Instruction, err error) {
 		case stateOperand2:
 			parts[0] = strings.Trim(parts[0], ",")
 			operandB, err := ParseOperand(parts[0])
+			if operandB.Type == operandTypeInvalid {
+				fmt.Println(parts)
+				return nil, errors.New("Invalid operand type")
+			}
 			if err != nil {
 				return nil, err
 			}

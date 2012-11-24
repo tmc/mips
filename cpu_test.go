@@ -24,8 +24,8 @@ MEMORY
 0 7
 CODE
       LD    R2,    0(R0) 
-      DADDI R2,    #3
-      SD    0(R1), R2
+      DADDI R3,    R2,    #3
+      SD    0(R1), R3
 `)
 	if cpu == nil {
 		t.Error("cpu == nil")

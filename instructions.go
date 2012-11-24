@@ -86,7 +86,7 @@ func (op Operand) Value(cpu *CPU) (value Word, err error) {
 	case operandTypeLabel:
 		value = Word(cpu.Labels[Label(op.text)])
 	default:
-		err = errors.New("Invalid operand type")
+		err = errors.New("Invalid operand type:")
 	}
 	return value, err
 }
@@ -199,7 +199,6 @@ func (i *LD) MEM1() error {
 	fmt.Println("MEM1 LD", i)
 
 	value, err := i.operandA.Value(i.cpu)
-	fmt.Printf("%#v\n", i.operandA)
 	if err != nil {
 		return err
 	}
