@@ -22,8 +22,8 @@ type CPU struct {
 
 func NewCPU() *CPU {
 	cpu := &CPU{
-		InstructionCache:   make([]Instruction, 0),
-		Labels: make(map[Label]int),
+		InstructionCache: make([]Instruction, 0),
+		Labels:           make(map[Label]int),
 	}
 	pipeline, err := NewPipeline(cpu,
 		new(IF1),
@@ -31,7 +31,7 @@ func NewCPU() *CPU {
 		//new(IF3),
 		new(ID),
 		new(EX),
-		//new(MEM1),
+		new(MEM1),
 		//new(MEM2),
 		//new(MEM3),
 		new(WB),
@@ -47,7 +47,7 @@ func (cpu *CPU) Run() (err error) {
 	fmt.Println(len(cpu.InstructionCache), "instructions")
 	for err == nil {
 		err = cpu.Step()
-		
+
 		cpu.PrintTiming(cpu.Cycle == 1)
 	}
 	if err == CPUFinished {
@@ -84,15 +84,15 @@ func (cpu *CPU) Step() error {
 func (cpu *CPU) PrintTiming(printHeader bool) {
 	if printHeader {
 		fmt.Printf("%8s", "")
-		for i, _:= range cpu.InstructionCache {
+		for i, _ := range cpu.InstructionCache {
 			fmt.Printf("I#%-6d", i+1)
 		}
 		fmt.Println("")
 	}
-	
+
 	fmt.Printf("c#%-6d", cpu.Cycle)
 	for _, inst := range cpu.InstructionCache {
-		inPipeline := false 
+		inPipeline := false
 		for _, iip := range cpu.Pipeline.ActiveInstructions() {
 			if iip.Instruction == inst {
 				inPipeline = true
@@ -100,7 +100,7 @@ func (cpu *CPU) PrintTiming(printHeader bool) {
 			}
 		}
 		if inPipeline == false {
-				fmt.Printf("%-6s", "")
+			fmt.Printf("%-6s", "")
 		}
 		//fmt.Print("%6s", )
 	}

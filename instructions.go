@@ -170,7 +170,6 @@ func (i *instruction) MEM3() error { return nil }
 func (i *instruction) WB() error   { return nil }
 
 
-
 ////////////////////////////////////////////////////////////////
 // Actual Instruction Implementations
 ////////////////////////////////////////////////////////////////
@@ -181,7 +180,7 @@ type LD struct {
 
 func (s *LD) MEM1() error {
     fmt.Println("MEM1 LD", s)
-    return nil    
+    return nil
 }
 
 
