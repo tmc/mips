@@ -86,6 +86,12 @@ func (p Pipeline) Empty() bool {
 	return allEmpty
 }
 
+func (p Pipeline) Flush() {
+	for _, stage := range p {
+		stage.SetInstruction(nil)
+	}
+}
+
 func (p Pipeline) ActiveInstructions() []*InstructionInPipeline {
 	result := make([]*InstructionInPipeline, 0)
 

@@ -9,6 +9,7 @@ var (
 	RAWException  = errors.New("RAW Exception")
 	WARException  = errors.New("WAR Exception")
 	WAWException  = errors.New("WAW Exception")
+	BranchOccured = errors.New("Branch Occurred")
 )
 
 type Instruction interface {
@@ -382,6 +383,34 @@ func (i *DADDI) EX() error {
 	return nil
 }
 
+////////////////////////////////////////////////////////////////
+// BNEZ
+////////////////////////////////////////////////////////////////
+
 type BNEZ struct {
 	instruction
+	target Word
+}
+
+func (i *BNEZ) IF2() (err error) {
+	i.target, err = i.operandA.Value(i.cpu)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (i *BNEZ) ID() (err error) {
+	// note, "destination" is a misnomer, the second argument, operandA is the target
+	val, err := i.destination.Value(i.cpu)
+	if err != nil {
+		return err
+	}
+	if val == 0 {
+		return nil
+	} else {
+		i.cpu.InstructionPointer = int(i.target)
+		return BranchOccured
+	}
+	return nil
 }

@@ -96,6 +96,11 @@ func (cpu *CPU) Step() error {
 		case err == RAWException:
 			//fmt.Println("STALL in", stage, stage.GetInstruction())
 			stage.Stall()
+		case err == BranchOccured:
+			if cpu.BranchMode == branchModeFlush {
+				cpu.Pipeline.Flush()
+				break
+			}
 		case err != nil:
 			return errors.New(fmt.Sprintf("Error while executing %s of %s: %s", stage, stage.GetInstruction(), err))
 		}
