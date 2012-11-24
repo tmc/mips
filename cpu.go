@@ -62,7 +62,7 @@ func (cpu *CPU) Run() (err error) {
 	for err == nil {
 		err = cpu.Step()
 
-		cpu.PrintTiming(cpu.Cycle == 1)
+		cpu.PrintState(cpu.Cycle == 1)
 	}
 	if err == CPUFinished {
 		return nil
@@ -114,23 +114,18 @@ func (cpu *CPU) Step() error {
 	return nil
 }
 
-func (cpu *CPU) PrintTiming(printHeader bool) {
+func (cpu *CPU) PrintState(printHeader bool) {
 	print := func(format string, args ...interface{}) {
 		fmt.Printf("%-12s", fmt.Sprintf(format, args...))
 	}
 	if printHeader {
-		print("")
-		for i, _ := range cpu.InstructionCache {
-			print("I#%d", i+1)
-		}
-		fmt.Println("")
 	}
 
 	print("c#%d", cpu.Cycle)
-	for _, inst := range cpu.InstructionCache {
+	for _, inst := range cpu.Instructions {
 		inPipeline := false
 		for _, iip := range cpu.Pipeline.ActiveInstructions() {
-			if iip.Instruction == inst {
+			if iip == inst {
 				inPipeline = true
 				stalled := iip.Stage.Stalled()
 				if stalled {
@@ -138,7 +133,11 @@ func (cpu *CPU) PrintTiming(printHeader bool) {
 					print("(s)")
 				} else {
 					//print("%s %s", iip.Stage, iip.OpCode())
-					print("%s", iip.Stage)
+					if iip.Stage.String() == "IF1" {
+						print("%s:%s", iip.Stage, iip.Instruction.OpCode())
+					} else {
+						print("%s", iip.Stage)
+					}
 
 				}
 			}
