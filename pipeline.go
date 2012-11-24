@@ -101,7 +101,7 @@ func (p Pipeline) ActiveInstructions() []*InstructionInPipeline {
 
 type stage struct {
 	instruction *InstructionInPipeline
-	stalled	bool
+	stalled     bool
 	cpu         *CPU
 	next        PipelineStage
 	prev        PipelineStage
@@ -123,11 +123,9 @@ func (s *stage) Unstall() {
 	s.stalled = false
 }
 
-
-func (s *stage) Stalled() bool{
+func (s *stage) Stalled() bool {
 	return s.stalled || (s.Next() != nil && s.Next().Stalled())
 }
-
 
 func (s *stage) Prev() PipelineStage {
 	return s.prev
@@ -185,7 +183,7 @@ func (s *IF1) Step() error {
 	//if s.cpu.Mode == ModeNoPipeline && s.cpu.Pipeline.Empty() == false {
 	//	return nil
 	//}
-	
+
 	if s.instruction != nil {
 		//fmt.Println("not loading new instruction, stalled.")
 		return nil

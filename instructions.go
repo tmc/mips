@@ -6,9 +6,9 @@ import (
 )
 
 var (
-    RAWException = errors.New("RAW Exception")
-    WARException = errors.New("WAR Exception")
-    WAWException = errors.New("WAW Exception")
+	RAWException = errors.New("RAW Exception")
+	WARException = errors.New("WAR Exception")
+	WAWException = errors.New("WAW Exception")
 )
 
 type Instruction interface {
@@ -85,14 +85,14 @@ func (op Operand) Value(cpu *CPU) (value Word, err error) {
 	case operandTypeImmediate:
 		value = Word(op.Offset)
 	case operandTypeNormal:
-                if cpu.Registers.Locked(op.Register) {
-                    return value, RAWException
-                }
+		if cpu.Registers.Locked(op.Register) {
+			return value, RAWException
+		}
 		value = cpu.Registers.Get(op.Register)
 	case operandTypeOffset:
-                if cpu.Registers.Locked(op.Register) {
-                    return value, RAWException
-                }
+		if cpu.Registers.Locked(op.Register) {
+			return value, RAWException
+		}
 		value = cpu.Registers.Get(op.Register) + Word(op.Offset)
 	case operandTypeLabel:
 		value = Word(cpu.Labels[Label(op.text)])
@@ -202,9 +202,9 @@ func (i *instruction) WB() error   { return nil }
 ////////////////////////////////////////////////////////////////
 
 type loadStoreInstruction struct {
-    instruction
-    address Word
-    value Word
+	instruction
+	address Word
+	value   Word
 }
 
 type LD struct {
@@ -213,49 +213,61 @@ type LD struct {
 
 func (i *LD) ID() error {
 
-    val, err := i.operandA.Value(i.cpu)
-    if err != nil {
-        return err
-    }
-    i.address = val
-    i.cpu.Registers.Acquire(i.destination.Register)
+	val, err := i.operandA.Value(i.cpu)
+	if err != nil {
+		return err
+	}
+	i.address = val
+	i.cpu.Registers.Acquire(i.destination.Register)
 
-    return nil
-}
-
-func (i *LD) MEM1() error {
-	//fmt.Println("MEM1 LD", i)
-	i.value = i.cpu.Ram[i.address]
 	return nil
 }
 
-func (i *LD) WB() error {
-	//fmt.Println("WD LD", i)
-        i.cpu.Registers.Release(i.destination.Register)
+func (i *LD) MEM3() error {
+	//fmt.Println("MEM1 LD", i)
+	i.value = i.cpu.Ram[i.address]
+
+	// if forwarding is enabled writeback early
+	// @todo for accuracy this shoudl be implemented with something akin to
+	// an inter-pipeline register
+	if i.cpu.ForwardingEnabled {
+		return i.performWB()
+	}
+	return nil
+}
+
+func (i *LD) performWB() error {
+	i.cpu.Registers.Release(i.destination.Register)
 	return i.cpu.Registers.Set(i.destination.Register, i.value)
+}
+
+func (i *LD) WB() error {
+	// if forwarding is not enabled then we've already provided the register value
+	if i.cpu.ForwardingEnabled == false {
+		return i.performWB()
+	}
+	return nil
 }
 
 type SD struct {
 	loadStoreInstruction
 }
 
-
-
 func (i *SD) ID() error {
 
-    val, err := i.operandA.Value(i.cpu)
-    if err != nil {
-        return err
-    }
-    i.value = val
+	val, err := i.operandA.Value(i.cpu)
+	if err != nil {
+		return err
+	}
+	i.value = val
 
-    val, err = i.destination.Value(i.cpu)
-    if err != nil {
-        return err
-    }
-    i.address = val
+	val, err = i.destination.Value(i.cpu)
+	if err != nil {
+		return err
+	}
+	i.address = val
 
-    return nil
+	return nil
 }
 
 func (i *SD) WB() error {
@@ -268,13 +280,19 @@ func (i *SD) WB() error {
 type ALUInstruction struct {
 	instruction
 	t1, t2 Word // temporaries
-        value Word
+	value  Word
+}
+
+func (i *ALUInstruction) performWB() error {
+	i.cpu.Registers.Release(i.destination.Register)
+	return i.cpu.Registers.Set(i.destination.Register, i.value)
 }
 
 func (i *ALUInstruction) WB() error {
-	//fmt.Println("ALU LD", i)
-        i.cpu.Registers.Release(i.destination.Register)
-	return i.cpu.Registers.Set(i.destination.Register, i.value)
+	if i.cpu.ForwardingEnabled == false {
+		return i.performWB()
+	}
+	return nil
 }
 
 type DADD struct {
@@ -293,6 +311,10 @@ func (i *DADD) EX() error {
 	}
 	i.value = a + b
 	// @todo consider overflow
+
+	if i.cpu.ForwardingEnabled == true {
+		return i.performWB()
+	}
 	return nil
 }
 
@@ -302,23 +324,26 @@ type DADDI struct {
 
 func (i *DADDI) ID() (err error) {
 
-    i.t1, err = i.operandA.Value(i.cpu)
-    if err != nil {
-        return err
-    }
+	i.t1, err = i.operandA.Value(i.cpu)
+	if err != nil {
+		return err
+	}
 
-    i.t2, err = i.operandB.Value(i.cpu)
-    if err != nil {
-        return err
-    }
-    i.cpu.Registers.Acquire(i.destination.Register)
-    return nil
+	i.t2, err = i.operandB.Value(i.cpu)
+	if err != nil {
+		return err
+	}
+	i.cpu.Registers.Acquire(i.destination.Register)
+	return nil
 }
 
 func (i *DADDI) EX() error {
 	//fmt.Println("DADDI EX", i)
 	i.value = i.t1 + i.t2
 	// @todo consider overflow
+	if i.cpu.ForwardingEnabled == true {
+		return i.performWB()
+	}
 	return nil
 }
 

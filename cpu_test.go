@@ -33,6 +33,7 @@ CODE
 	if err != nil {
 		t.Error(err)
 	}
+	cpu.ForwardingEnabled = true
 	err = cpu.Run()
 	if err != nil {
 		t.Error(err)

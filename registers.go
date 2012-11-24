@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	InvalidSet = errors.New("Invalid Register Set")
-	RegisterLocked = errors.New("Register Locked")
+	InvalidSet        = errors.New("Invalid Register Set")
+	RegisterLocked    = errors.New("Register Locked")
 	RegisterNotLocked = errors.New("Register Not Locked")
 )
 
@@ -52,13 +52,13 @@ const (
 
 type Registers struct {
 	values []Word
-	locks []int
+	locks  []int
 }
 
 func NewRegisters() *Registers {
 	return &Registers{
 		values: make([]Word, numRegisters),
-		locks: make([]int, numRegisters),
+		locks:  make([]int, numRegisters),
 	}
 }
 
@@ -86,7 +86,6 @@ func (r *Registers) Release(register Register) {
 		panic("over-released")
 	}
 }
-
 
 func (r *Registers) Set(register Register, value Word) error {
 	if register == 0 {

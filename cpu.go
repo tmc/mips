@@ -35,7 +35,7 @@ func NewCPU() *CPU {
 	cpu := &CPU{
 		InstructionCache: make([]Instruction, 0),
 		Labels:           make(map[Label]int),
-		Registers: NewRegisters(),
+		Registers:        NewRegisters(),
 	}
 	pipeline, err := NewPipeline(cpu,
 		new(IF1),
@@ -48,7 +48,7 @@ func NewCPU() *CPU {
 		new(MEM3),
 		new(WB),
 	)
-	
+
 	if err != nil {
 		panic(err)
 	}
@@ -61,7 +61,7 @@ func (cpu *CPU) Run() (err error) {
 	fmt.Println("#################### RUN ##########################")
 	for err == nil {
 		err = cpu.Step()
-		
+
 		cpu.PrintTiming(cpu.Cycle == 1)
 	}
 	if err == CPUFinished {
@@ -87,7 +87,7 @@ func (cpu *CPU) Step() error {
 			return err
 		}
 	}
-	
+
 	for i := len(cpu.Pipeline) - 1; i >= 0; i-- {
 		stage := cpu.Pipeline[i]
 		//fmt.Println("################ stage", stage, stage.GetInstruction)
