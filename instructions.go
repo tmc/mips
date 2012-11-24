@@ -10,16 +10,16 @@ type Instruction interface {
 	OpCode() string
 	SetOpCode(opcode string)
 	String() string
-        Label() Label
-        SetLabel(label Label)
-        Text() string
-        SetText(text string)
-        Destination() Operand
-        SetDestination(o Operand)
-        OperandA() Operand
-        SetOperandA(o Operand)
-        OperandB() Operand
-        SetOperandB(o Operand)
+	Label() Label
+	SetLabel(label Label)
+	Text() string
+	SetText(text string)
+	Destination() Operand
+	SetDestination(o Operand)
+	OperandA() Operand
+	SetOperandA(o Operand)
+	OperandB() Operand
+	SetOperandB(o Operand)
 
 	IF1() error
 	IF2() error
@@ -54,7 +54,7 @@ type Label string
 type instruction struct {
 	label       Label
 	text        string
-	opcode  string
+	opcode      string
 	destination Operand
 	operandA    Operand
 	operandB    Operand
@@ -169,7 +169,6 @@ func (i *instruction) MEM2() error { return nil }
 func (i *instruction) MEM3() error { return nil }
 func (i *instruction) WB() error   { return nil }
 
-
 ////////////////////////////////////////////////////////////////
 // Actual Instruction Implementations
 ////////////////////////////////////////////////////////////////
@@ -179,10 +178,9 @@ type LD struct {
 }
 
 func (s *LD) MEM1() error {
-    fmt.Println("MEM1 LD", s)
-    return nil
+	fmt.Println("MEM1 LD", s)
+	return nil
 }
-
 
 type SD struct {
 	instruction
