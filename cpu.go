@@ -27,6 +27,7 @@ type CPU struct {
 	Ram                Memory
 	InstructionCache   InstructionCache
 	InstructionPointer int
+	Instructions       []*ExecutedInstruction
 	Labels             map[Label]int // label to Code index mapping
 	Pipeline           Pipeline
 }
@@ -76,34 +77,13 @@ func (cpu *CPU) Step() error {
 
 	//fmt.Println("#################### CYCLE", cpu.Cycle, "####################")
 
-	// Move instructions to next stage of pipeline unless we encounter a stall
-	for i := len(cpu.Pipeline) - 1; i >= 0; i-- {
-		stage := cpu.Pipeline[i]
-		err := cpu.Pipeline.TransferInstruction(stage)
-		if err == PipelineStall {
-			//fmt.Println("Encountered stall, stopping instruction transfer.")
-			//break
-		} else if err != nil {
-			return err
-		}
+	// Move instructions to next stage of pipeline (unless a stage is stalled)
+	if err := cpu.Pipeline.TransferInstructions(); err != nil {
+		return err
 	}
 
-	for i := len(cpu.Pipeline) - 1; i >= 0; i-- {
-		stage := cpu.Pipeline[i]
-		//fmt.Println("################ stage", stage, stage.GetInstruction)
-		stage.Unstall()
-		switch err := stage.Step(); {
-		case err == RAWException:
-			//fmt.Println("STALL in", stage, stage.GetInstruction())
-			stage.Stall()
-		case err == BranchOccured:
-			if cpu.BranchMode == branchModeFlush {
-				cpu.Pipeline.Flush()
-				break
-			}
-		case err != nil:
-			return errors.New(fmt.Sprintf("Error while executing %s of %s: %s", stage, stage.GetInstruction(), err))
-		}
+	if err := cpu.Pipeline.Execute(); err != nil {
+		return err
 	}
 
 	if cpu.Pipeline.Empty() && cpu.InstructionCacheEmpty() {
