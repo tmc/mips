@@ -63,7 +63,7 @@ func (cpu *CPU) Run() (err error) {
 	for err == nil {
 		err = cpu.Step()
 
-		cpu.PrintState(cpu.Cycle == 1)
+		fmt.Print(cpu.RenderState())
 	}
 	if err == CPUFinished {
 		return nil
@@ -94,14 +94,12 @@ func (cpu *CPU) Step() error {
 	return nil
 }
 
-func (cpu *CPU) PrintState(printHeader bool) {
-	print := func(format string, args ...interface{}) {
-		fmt.Printf("%-12s", fmt.Sprintf(format, args...))
-	}
-	if printHeader {
-	}
+func (cpu *CPU) RenderState() string {
+	result := ""
+	// spacing helper
+	print := spacingHelper(12)
 
-	print("c#%d", cpu.Cycle)
+	result += print("c#%d", cpu.Cycle)
 	for _, inst := range cpu.Instructions {
 		inPipeline := false
 		for _, iip := range cpu.Pipeline.ActiveInstructions() {
@@ -110,24 +108,24 @@ func (cpu *CPU) PrintState(printHeader bool) {
 				stalled := iip.Stage.Stalled()
 				if stalled {
 					//print("(s) %s", iip.OpCode())
-					print("(s)")
+					result += print("(s)")
 				} else {
 					//print("%s %s", iip.Stage, iip.OpCode())
 					if iip.Stage.String() == "IF1" {
-						print("%s:%s", iip.Stage, iip.Instruction.OpCode())
+						result += print("%s:%s", iip.Stage, iip.Instruction.OpCode())
 					} else {
-						print("%s", iip.Stage)
+						result += print("%s", iip.Stage)
 					}
 
 				}
 			}
 		}
 		if inPipeline == false {
-			fmt.Printf("%-12s", "")
+			result += print("")
 		}
-		//fmt.Print("%6s", )
 	}
-	fmt.Println("")
+	result += "\n"
+	return result
 }
 
 func (cpu *CPU) InstructionCacheEmpty() bool {
