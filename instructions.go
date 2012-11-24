@@ -6,9 +6,9 @@ import (
 )
 
 var (
-	RAWException = errors.New("RAW Exception")
-	WARException = errors.New("WAR Exception")
-	WAWException = errors.New("WAW Exception")
+	RAWException  = errors.New("RAW Exception")
+	WARException  = errors.New("WAR Exception")
+	WAWException  = errors.New("WAW Exception")
 )
 
 type Instruction interface {
@@ -207,6 +207,10 @@ type loadStoreInstruction struct {
 	value   Word
 }
 
+////////////////////////////////////////////////////////////////
+// LD
+////////////////////////////////////////////////////////////////
+
 type LD struct {
 	loadStoreInstruction
 }
@@ -249,6 +253,10 @@ func (i *LD) WB() error {
 	return nil
 }
 
+////////////////////////////////////////////////////////////////
+// SD
+////////////////////////////////////////////////////////////////
+
 type SD struct {
 	loadStoreInstruction
 }
@@ -277,6 +285,10 @@ func (i *SD) WB() error {
 	return nil
 }
 
+////////////////////////////////////////////////////////////////
+// ALUInstruction
+////////////////////////////////////////////////////////////////
+
 type ALUInstruction struct {
 	instruction
 	t1, t2 Word // temporaries
@@ -295,8 +307,27 @@ func (i *ALUInstruction) WB() error {
 	return nil
 }
 
+////////////////////////////////////////////////////////////////
+// DADD
+////////////////////////////////////////////////////////////////
+
 type DADD struct {
 	ALUInstruction
+}
+
+func (i *DADD) ID() (err error) {
+
+	i.t1, err = i.operandA.Value(i.cpu)
+	if err != nil {
+		return err
+	}
+
+	i.t2, err = i.operandB.Value(i.cpu)
+	if err != nil {
+		return err
+	}
+	i.cpu.Registers.Acquire(i.destination.Register)
+	return nil
 }
 
 func (i *DADD) EX() error {
@@ -317,6 +348,10 @@ func (i *DADD) EX() error {
 	}
 	return nil
 }
+
+////////////////////////////////////////////////////////////////
+// DADDI
+////////////////////////////////////////////////////////////////
 
 type DADDI struct {
 	ALUInstruction
