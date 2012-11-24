@@ -20,7 +20,7 @@ type InstructionCache []Instruction
 var CPUFinished = errors.New("CPU Finished.")
 
 type CPU struct {
-	Registers          Registers
+	Registers          *Registers
 	BranchMode         CPUBranchMode
 	ForwardingEnabled  bool
 	Cycle              int
@@ -35,18 +35,20 @@ func NewCPU() *CPU {
 	cpu := &CPU{
 		InstructionCache: make([]Instruction, 0),
 		Labels:           make(map[Label]int),
+		Registers: NewRegisters(),
 	}
 	pipeline, err := NewPipeline(cpu,
 		new(IF1),
-		//new(IF2),
-		//new(IF3),
+		new(IF2),
+		new(IF3),
 		new(ID),
 		new(EX),
 		new(MEM1),
-		//new(MEM2),
-		//new(MEM3),
+		new(MEM2),
+		new(MEM3),
 		new(WB),
 	)
+	
 	if err != nil {
 		panic(err)
 	}
@@ -56,10 +58,10 @@ func NewCPU() *CPU {
 
 func (cpu *CPU) Run() (err error) {
 	fmt.Println(len(cpu.InstructionCache), "instructions")
-
+	fmt.Println("#################### RUN ##########################")
 	for err == nil {
 		err = cpu.Step()
-
+		
 		cpu.PrintTiming(cpu.Cycle == 1)
 	}
 	if err == CPUFinished {
@@ -69,24 +71,38 @@ func (cpu *CPU) Run() (err error) {
 }
 
 func (cpu *CPU) Step() error {
+
 	cpu.Cycle += 1
 
 	//fmt.Println("#################### CYCLE", cpu.Cycle, "####################")
 
-	// Move instructions to next stage of pipeline (talk pipeline stages backwards)
+	// Move instructions to next stage of pipeline unless we encounter a stall
 	for i := len(cpu.Pipeline) - 1; i >= 0; i-- {
-		cpu.Pipeline.TransferInstruction(cpu.Pipeline[i])
+		stage := cpu.Pipeline[i]
+		err := cpu.Pipeline.TransferInstruction(stage)
+		if err == PipelineStall {
+			//fmt.Println("Encountered stall, stopping instruction transfer.")
+			//break
+		} else if err != nil {
+			return err
+		}
 	}
-
-	for _, stage := range cpu.Pipeline {
-		//fmt.Println("################ stage", stage)
-		err := stage.Step()
-		if err != nil {
+	
+	for i := len(cpu.Pipeline) - 1; i >= 0; i-- {
+		stage := cpu.Pipeline[i]
+		//fmt.Println("################ stage", stage, stage.GetInstruction)
+		stage.Unstall()
+		switch err := stage.Step(); {
+		case err == RAWException:
+			//fmt.Println("STALL in", stage, stage.GetInstruction())
+			stage.Stall()
+		case err != nil:
 			return errors.New(fmt.Sprintf("Error while executing %s of %s: %s", stage, stage.GetInstruction(), err))
 		}
 	}
 
 	if cpu.Pipeline.Empty() && cpu.InstructionCacheEmpty() {
+		//fmt.Println("pipeline empty", len(cpu.Pipeline.ActiveInstructions()))
 		return CPUFinished
 	}
 
@@ -94,25 +110,36 @@ func (cpu *CPU) Step() error {
 }
 
 func (cpu *CPU) PrintTiming(printHeader bool) {
+	print := func(format string, args ...interface{}) {
+		fmt.Printf("%-12s", fmt.Sprintf(format, args...))
+	}
 	if printHeader {
-		fmt.Printf("%8s", "")
+		print("")
 		for i, _ := range cpu.InstructionCache {
-			fmt.Printf("I#%-6d", i+1)
+			print("I#%d", i+1)
 		}
 		fmt.Println("")
 	}
 
-	fmt.Printf("c#%-6d", cpu.Cycle)
+	print("c#%d", cpu.Cycle)
 	for _, inst := range cpu.InstructionCache {
 		inPipeline := false
 		for _, iip := range cpu.Pipeline.ActiveInstructions() {
 			if iip.Instruction == inst {
 				inPipeline = true
-				fmt.Printf("%-6s", iip.Stage)
+				stalled := iip.Stage.Stalled()
+				if stalled {
+					//print("(s) %s", iip.OpCode())
+					print("(s)")
+				} else {
+					//print("%s %s", iip.Stage, iip.OpCode())
+					print("%s", iip.Stage)
+
+				}
 			}
 		}
 		if inPipeline == false {
-			fmt.Printf("%-6s", "")
+			fmt.Printf("%-12s", "")
 		}
 		//fmt.Print("%6s", )
 	}

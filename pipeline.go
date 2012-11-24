@@ -1,9 +1,12 @@
-// Simple simulator of a subset of the MIPS instruction set to show pipelining
 package mips
 
 import (
 	"errors"
 	"fmt"
+)
+
+var (
+	PipelineStall = errors.New("Pipeline Stalled")
 )
 
 type InstructionInPipeline struct {
@@ -17,6 +20,9 @@ type PipelineStage interface {
 	Initialize(cpu *CPU)
 	String() string
 	Step() error
+	Stall()
+	Unstall()
+	Stalled() bool
 	SetInstruction(instruction *InstructionInPipeline)
 	GetInstruction() *InstructionInPipeline
 	Next() PipelineStage
@@ -95,6 +101,7 @@ func (p Pipeline) ActiveInstructions() []*InstructionInPipeline {
 
 type stage struct {
 	instruction *InstructionInPipeline
+	stalled	bool
 	cpu         *CPU
 	next        PipelineStage
 	prev        PipelineStage
@@ -108,9 +115,19 @@ func (s stage) String() string {
 	return "unknown"
 }
 
-func (s *stage) Step() error {
-	return nil
+func (s *stage) Stall() {
+	s.stalled = true
 }
+
+func (s *stage) Unstall() {
+	s.stalled = false
+}
+
+
+func (s *stage) Stalled() bool{
+	return s.stalled || (s.Next() != nil && s.Next().Stalled())
+}
+
 
 func (s *stage) Prev() PipelineStage {
 	return s.prev
@@ -136,18 +153,24 @@ func (s *stage) SetInstruction(instruction *InstructionInPipeline) {
 	s.instruction = instruction
 }
 
-func (p *Pipeline) TransferInstruction(toStage PipelineStage) {
+func (p *Pipeline) TransferInstruction(toStage PipelineStage) error {
 	fromStage := toStage.Prev()
 	if fromStage == nil {
-		toStage.SetInstruction(nil)
-		return
+		return nil
 	}
+	if fromStage.Stalled() || toStage.Stalled() {
+		//fmt.Println(fromStage, "stalled:", fromStage.GetInstruction())
+		return PipelineStall
+	}
+	//fmt.Println("\t\tTransfer instruction from", fromStage, "to", toStage, ":", fromStage.GetInstruction())
 	inst := fromStage.GetInstruction()
 	toStage.SetInstruction(inst)
+	fromStage.SetInstruction(nil)
 	if inst != nil {
-		//fmt.Println("Transferrring instruction from", fromStage, "to", toStage, ":", toStage.GetInstruction())
+		//fmt.Println("\t\tTransfer instruction from", fromStage, "to", toStage, ":", toStage.GetInstruction())
 		inst.Stage = toStage
 	}
+	return nil
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -162,16 +185,20 @@ func (s *IF1) Step() error {
 	//if s.cpu.Mode == ModeNoPipeline && s.cpu.Pipeline.Empty() == false {
 	//	return nil
 	//}
+	
+	if s.instruction != nil {
+		//fmt.Println("not loading new instruction, stalled.")
+		return nil
+	}
 
 	if s.cpu.InstructionCacheEmpty() {
 		//fmt.Println("No more instructions")
-		s.instruction = nil
 	} else {
 		s.instruction = &InstructionInPipeline{
 			s.cpu.InstructionCache[s.cpu.InstructionPointer],
 			s,
 		}
-		fmt.Println("Issue:", s.instruction)
+		//fmt.Println("Issue:", s.instruction)
 		s.cpu.InstructionPointer += 1
 		return s.instruction.IF1()
 	}

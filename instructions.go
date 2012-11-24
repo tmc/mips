@@ -1,9 +1,14 @@
-// Simple simulator of a subset of the MIPS instruction set to illustrate pipelining
 package mips
 
 import (
 	"errors"
 	"fmt"
+)
+
+var (
+    RAWException = errors.New("RAW Exception")
+    WARException = errors.New("WAR Exception")
+    WAWException = errors.New("WAW Exception")
 )
 
 type Instruction interface {
@@ -80,8 +85,14 @@ func (op Operand) Value(cpu *CPU) (value Word, err error) {
 	case operandTypeImmediate:
 		value = Word(op.Offset)
 	case operandTypeNormal:
+                if cpu.Registers.Locked(op.Register) {
+                    return value, RAWException
+                }
 		value = cpu.Registers.Get(op.Register)
 	case operandTypeOffset:
+                if cpu.Registers.Locked(op.Register) {
+                    return value, RAWException
+                }
 		value = cpu.Registers.Get(op.Register) + Word(op.Offset)
 	case operandTypeLabel:
 		value = Word(cpu.Labels[Label(op.text)])
@@ -190,56 +201,79 @@ func (i *instruction) WB() error   { return nil }
 // Actual Instruction Implementations
 ////////////////////////////////////////////////////////////////
 
+type loadStoreInstruction struct {
+    instruction
+    address Word
+    value Word
+}
+
 type LD struct {
-	instruction
-	value Word
+	loadStoreInstruction
+}
+
+func (i *LD) ID() error {
+
+    val, err := i.operandA.Value(i.cpu)
+    if err != nil {
+        return err
+    }
+    i.address = val
+    i.cpu.Registers.Acquire(i.destination.Register)
+
+    return nil
 }
 
 func (i *LD) MEM1() error {
-	fmt.Println("MEM1 LD", i)
-
-	value, err := i.operandA.Value(i.cpu)
-	if err != nil {
-		return err
-	}
-	fmt.Println("value", value)
-	fmt.Println("value", i.cpu.Ram[value])
-	i.value = i.cpu.Ram[value]
+	//fmt.Println("MEM1 LD", i)
+	i.value = i.cpu.Ram[i.address]
 	return nil
 }
 
 func (i *LD) WB() error {
-	fmt.Println("WD LD", i)
+	//fmt.Println("WD LD", i)
+        i.cpu.Registers.Release(i.destination.Register)
 	return i.cpu.Registers.Set(i.destination.Register, i.value)
 }
 
 type SD struct {
-	instruction
-	value Word
+	loadStoreInstruction
+}
+
+
+
+func (i *SD) ID() error {
+
+    val, err := i.operandA.Value(i.cpu)
+    if err != nil {
+        return err
+    }
+    i.value = val
+
+    val, err = i.destination.Value(i.cpu)
+    if err != nil {
+        return err
+    }
+    i.address = val
+
+    return nil
 }
 
 func (i *SD) WB() error {
-	fmt.Println("WD SD", i)
-	val, err := i.operandA.Value(i.cpu)
-	if err != nil {
-		return err
-	}
-	dest, err := i.destination.Value(i.cpu)
-	if err != nil {
-		return err
-	}
-	i.cpu.Ram[dest] = val
+	//fmt.Println("WD SD", i)
+	i.cpu.Ram[i.address] = i.value
 	// @todo memory write errors, etc
 	return nil
 }
 
 type ALUInstruction struct {
 	instruction
-	value Word
+	t1, t2 Word // temporaries
+        value Word
 }
 
 func (i *ALUInstruction) WB() error {
-	fmt.Println("ALU LD", i)
+	//fmt.Println("ALU LD", i)
+        i.cpu.Registers.Release(i.destination.Register)
 	return i.cpu.Registers.Set(i.destination.Register, i.value)
 }
 
@@ -248,7 +282,7 @@ type DADD struct {
 }
 
 func (i *DADD) EX() error {
-	fmt.Println("DADD EX", i)
+	//fmt.Println("DADD EX", i)
 	a, err := i.operandA.Value(i.cpu)
 	if err != nil {
 		return err
@@ -266,17 +300,24 @@ type DADDI struct {
 	ALUInstruction
 }
 
+func (i *DADDI) ID() (err error) {
+
+    i.t1, err = i.operandA.Value(i.cpu)
+    if err != nil {
+        return err
+    }
+
+    i.t2, err = i.operandB.Value(i.cpu)
+    if err != nil {
+        return err
+    }
+    i.cpu.Registers.Acquire(i.destination.Register)
+    return nil
+}
+
 func (i *DADDI) EX() error {
-	fmt.Println("DADDI EX", i)
-	a, err := i.operandA.Value(i.cpu)
-	if err != nil {
-		return err
-	}
-	b, err := i.operandB.Value(i.cpu)
-	if err != nil {
-		return err
-	}
-	i.value = a + b
+	//fmt.Println("DADDI EX", i)
+	i.value = i.t1 + i.t2
 	// @todo consider overflow
 	return nil
 }

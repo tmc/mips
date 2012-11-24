@@ -1,4 +1,3 @@
-// Simple simulator of a subset of the MIPS instruction set to show pipelining
 package mips
 
 import (

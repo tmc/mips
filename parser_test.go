@@ -70,7 +70,7 @@ func TestParsingSimpleRegisterSet(t *testing.T) {
 	if cpu == nil {
 		t.Error("cpu == nil")
 	}
-	if cpu.Registers[R1] != 4 {
+	if cpu.Registers.Get(R1) != 4 {
 		t.Fail()
 	}
 }
@@ -83,13 +83,13 @@ func TestParsingRegistersAndMemorySet(t *testing.T) {
 	if cpu == nil {
 		t.Error("cpu == nil")
 	}
-	if cpu.Registers[R1] != 42 {
+	if cpu.Registers.Get(R1) != 42 {
 		t.Error("R1 != 42")
 	}
-	if cpu.Registers[R7] != 13 {
+	if cpu.Registers.Get(R7) != 13 {
 		t.Error("R7 != 13")
 	}
-	if cpu.Registers[R0] != 0 {
+	if cpu.Registers.Get(R0) != 0 {
 		t.Error("R0 != 0")
 	}
 	if cpu.Ram[42] != 31337 {

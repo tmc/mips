@@ -1,8 +1,14 @@
-// Simple simulator of a subset of the MIPS instruction set to show pipelining
 package mips
 
 import (
+	"errors"
 	"fmt"
+)
+
+var (
+	InvalidSet = errors.New("Invalid Register Set")
+	RegisterLocked = errors.New("Register Locked")
+	RegisterNotLocked = errors.New("Register Not Locked")
 )
 
 type Register int
@@ -44,21 +50,49 @@ const (
 	numRegisters
 )
 
-type Registers [numRegisters]Word
+type Registers struct {
+	values []Word
+	locks []int
+}
+
+func NewRegisters() *Registers {
+	return &Registers{
+		values: make([]Word, numRegisters),
+		locks: make([]int, numRegisters),
+	}
+}
 
 func (r Registers) String() string {
 	result := ""
 	for i := 0; i < numRegisters; i++ {
-		if r[i] != 0 {
-			result += fmt.Sprintf("\n%s = %d", Register(i), r[i])
+		if r.values[i] != 0 {
+			result += fmt.Sprintf("\n%s = %d", Register(i), r.values[i])
 		}
 	}
 	return result
 }
 
+func (r *Registers) Acquire(register Register) {
+	r.locks[register] += 1
+}
+
+func (r *Registers) Locked(register Register) bool {
+	return r.locks[register] > 0
+}
+
+func (r *Registers) Release(register Register) {
+	r.locks[register] -= 1
+	if r.locks[register] < 0 {
+		panic("over-released")
+	}
+}
+
+
 func (r *Registers) Set(register Register, value Word) error {
-	if register != 0 {
-		r[register] = value
+	if register == 0 {
+		return InvalidSet
+	} else {
+		r.values[register] = value
 	}
 	return nil
 }
@@ -67,7 +101,7 @@ func (r *Registers) Get(register Register) Word {
 	if register == 0 {
 		return 0
 	}
-	return r[register]
+	return r.values[register]
 }
 
 func (r Register) String() string {
