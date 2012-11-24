@@ -1,4 +1,4 @@
-// Simple simulator of a subset of the MIPS instruction set to show pipelining
+// Simple simulator of a subset of the MIPS instruction set to illustrate pipelining
 package mips
 
 import (
@@ -6,10 +6,21 @@ import (
 	"fmt"
 )
 
-type Operation interface {
+type Instruction interface {
 	OpCode() string
-	String() string
 	SetOpCode(opcode string)
+	String() string
+        Label() Label
+        SetLabel(label Label)
+        Text() string
+        SetText(text string)
+        Destination() Operand
+        SetDestination(o Operand)
+        OperandA() Operand
+        SetOperandA(o Operand)
+        OperandB() Operand
+        SetOperandB(o Operand)
+
 	IF1() error
 	IF2() error
 	IF3() error
@@ -19,10 +30,6 @@ type Operation interface {
 	MEM2() error
 	MEM3() error
 	WB() error
-}
-
-type operation struct {
-	opcode string
 }
 
 type OperandType int
@@ -44,13 +51,13 @@ type Operand struct {
 
 type Label string
 
-type Instruction struct {
-	Label       Label
+type instruction struct {
+	label       Label
 	text        string
-	Operation   Operation
-	Destination Operand
-	OperandA    Operand
-	OperandB    Operand
+	opcode  string
+	destination Operand
+	operandA    Operand
+	operandB    Operand
 }
 
 func (op Operand) String() string {
@@ -67,119 +74,129 @@ func (op Operand) String() string {
 	return "@unknown@"
 }
 
-func (i Instruction) String() string {
-	result := fmt.Sprintf("%s %s %s", i.Operation, i.Destination, i.OperandA)
-	if i.OperandB.Type != operandTypeInvalid {
-		result += fmt.Sprintf(" %s", i.OperandB)
+////////////////////////////////////////////////////////////////
+// Instruction
+////////////////////////////////////////////////////////////////
+
+func NewInstruction(opcode string) (i Instruction, err error) {
+
+	switch opcode {
+	case "LD":
+		i = new(LD)
+	case "SD":
+		i = new(SD)
+	case "DADD":
+		i = new(DADD)
+	case "DADDI":
+		i = new(DADDI)
+	case "BNEZ":
+		i = new(BNEZ)
+	default:
+		return nil, errors.New(fmt.Sprintf("Invalid opcode. %s", opcode))
 	}
-	//result := fmt.Sprintf("%s %s", i.Operation, i.Destination)
-	if i.Label != "" {
-		result += fmt.Sprintf(" (label: %s)", i.Label)
+	i.SetOpCode(opcode)
+	return
+}
+
+func (i instruction) String() string {
+	result := fmt.Sprintf("%s %s %s", i.opcode, i.destination, i.operandA)
+	if i.operandB.Type != operandTypeInvalid {
+		result += fmt.Sprintf(" %s", i.operandB)
+	}
+	if i.label != "" {
+		result += fmt.Sprintf(" (label: %s)", i.label)
 	}
 	return result
 }
 
-func (i *Instruction) IF1() error  { return i.Operation.IF1() }
-func (i *Instruction) IF2() error  { return i.Operation.IF2() }
-func (i *Instruction) IF3() error  { return i.Operation.IF3() }
-func (i *Instruction) ID() error   { return i.Operation.ID() }
-func (i *Instruction) EX() error   { return i.Operation.EX() }
-func (i *Instruction) MEM1() error { return i.Operation.MEM1() }
-func (i *Instruction) MEM2() error { return i.Operation.MEM2() }
-func (i *Instruction) MEM3() error { return i.Operation.MEM3() }
-func (i *Instruction) WB() error   { return i.Operation.WB() }
+func (i instruction) OpCode() string {
+	return i.opcode
+}
+
+func (i *instruction) SetOpCode(opcode string) {
+	i.opcode = opcode
+}
+
+func (i *instruction) Label() Label {
+	return i.label
+}
+
+func (i *instruction) SetLabel(label Label) {
+	i.label = label
+}
+
+func (i *instruction) Text() string {
+	return i.text
+}
+
+func (i *instruction) SetText(text string) {
+	i.text = text
+}
+
+func (i *instruction) Destination() Operand {
+	return i.destination
+}
+
+func (i *instruction) SetDestination(d Operand) {
+	i.destination = d
+}
+
+func (i *instruction) OperandA() Operand {
+	return i.operandA
+}
+
+func (i *instruction) SetOperandA(o Operand) {
+	i.operandA = o
+}
+
+func (i *instruction) OperandB() Operand {
+	return i.operandB
+}
+
+func (i *instruction) SetOperandB(o Operand) {
+	i.operandB = o
+}
+
+// Default blank stage implementations
+
+func (i *instruction) IF1() error  { return nil }
+func (i *instruction) IF2() error  { return nil }
+func (i *instruction) IF3() error  { return nil }
+func (i *instruction) ID() error   { return nil }
+func (i *instruction) EX() error   { return nil }
+func (i *instruction) MEM1() error { return nil }
+func (i *instruction) MEM2() error { return nil }
+func (i *instruction) MEM3() error { return nil }
+func (i *instruction) WB() error   { return nil }
+
+
 
 ////////////////////////////////////////////////////////////////
-// Operations
+// Actual Instruction Implementations
 ////////////////////////////////////////////////////////////////
-
-func NewOperation(opcode string) (op Operation, err error) {
-
-	switch opcode {
-	case "LD":
-		op = new(LD)
-	case "SD":
-		op = new(SD)
-	case "DADD":
-		op = new(DADD)
-	case "DADDI":
-		op = new(DADDI)
-	case "BNEZ":
-		op = new(BNEZ)
-	default:
-		return nil, errors.New(fmt.Sprintf("Invalid opcode. %s", opcode))
-	}
-	op.SetOpCode(opcode)
-	return
-}
-
-func (o operation) OpCode() string {
-	return o.opcode
-}
-
-func (o operation) String() string {
-	return o.opcode
-}
-
-func (o *operation) SetOpCode(opcode string) {
-	o.opcode = opcode
-}
-
-func (o operation) IF1() error {
-	logger.Debug("IF1", o)
-	return nil
-}
-func (o operation) IF2() error {
-	logger.Debug("IF2", o)
-	return nil
-}
-
-func (o operation) IF3() error {
-	logger.Debug("IF3", o)
-	return nil
-}
-func (o operation) ID() error {
-	logger.Debug("ID", o)
-	return nil
-}
-func (o operation) EX() error {
-	logger.Debug("EX", o)
-	logger.Debugf("EX %s", o)
-	return nil
-}
-func (o operation) MEM1() error {
-	logger.Debug("MEM1", o)
-	return nil
-}
-func (o operation) MEM2() error {
-	logger.Debug("MEM2", o)
-	return nil
-}
-func (o operation) MEM3() error {
-	logger.Debug("MEM3", o)
-	return nil
-}
-func (o operation) WB() error {
-	logger.Debug("WB", o)
-	return nil
-}
 
 type LD struct {
-	operation
+	instruction
 }
 
+func (s *LD) MEM1() error {
+    fmt.Println("MEM1 LD", s)
+    return nil    
+}
+
+
 type SD struct {
-	operation
+	instruction
 }
 
 type DADD struct {
-	operation
+	instruction
 }
 
 type DADDI struct {
-	operation
+	instruction
 }
 
 type BNEZ struct {
-	operation
+	instruction
 }

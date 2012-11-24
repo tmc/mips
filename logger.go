@@ -11,12 +11,12 @@ const DEBUG = 2
 const WARN = 1
 const ERROR = 0
 
-const logger = logging(DEBUG) // set to the level you want
+const logger = logging(WARN) // set to the level you want
 
 type logging int
 
 func getCaller() string {
-	if _, file, line, ok := runtime.Caller(2); ok {
+	if _, file, line, ok := runtime.Caller(3); ok {
 		return fmt.Sprintf("%s:%d", filepath.Base(file), line)
 	}
 	return "unknown"

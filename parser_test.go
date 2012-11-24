@@ -49,7 +49,7 @@ func testCPUsEqual(m1, m2 *CPU) bool {
 		return true
 	}
 	stateAndRamEqual := m2.Registers == m2.Registers && m1.Ram == m2.Ram
-	return stateAndRamEqual && m1.Code.Equals(m2.Code)
+	return stateAndRamEqual && m1.InstructionCache.Equals(m2.InstructionCache)
 }
 
 func TestParsingSmallest(t *testing.T) {

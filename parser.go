@@ -118,13 +118,15 @@ func (mp *cpuParser) Parse() (m *CPU, err error) {
 				mp.state = stateFinished
 			} else {
 				//fmt.Println("process code: ", mp.current())
-				op, err := ParseInstruction(strings.NewReader(mp.current()))
+				instruction, err := ParseInstruction(strings.NewReader(mp.current()))
 				if err != nil {
 					return nil, mp.parseError(fmt.Sprintf("Instruction parse error: %s", err))
 				}
-				mp.cpu.Code = append(mp.cpu.Code, op)
-				if op.Label != "" {
-					mp.cpu.Labels[op.Label] = len(mp.cpu.Code)
+				mp.cpu.InstructionCache = append(mp.cpu.InstructionCache, instruction)
+
+				// if there's a label, store it in the label -> IC addr map
+				if instruction.Label() != "" {
+					mp.cpu.Labels[instruction.Label()] = len(mp.cpu.InstructionCache)
 				}
 			}
 		}
@@ -212,12 +214,12 @@ func removeEmpty(i []string) []string {
 	return result
 }
 
-func (ip *instructionParser) Parse() (i *Instruction, err error) {
-	i = new(Instruction)
+func (ip *instructionParser) Parse() (i Instruction, err error) {
 	ip.line = strings.TrimSpace(ip.line)
+
 	line := ip.line
 	parts := removeEmpty(strings.Split(line, " "))
-	i.text = ip.line
+	instruction_label := ""
 
 	for ip.state != stateFinished {
 		if len(parts) == 0 {
@@ -230,53 +232,54 @@ func (ip *instructionParser) Parse() (i *Instruction, err error) {
 			} else {
 				ip.state = stateOperation
 			}
-			//fmt.Println("startState:", parts)
 
 		case stateLabel:
-			i.Label = Label(parts[0][:strings.Index(parts[0], ":")])
+			instruction_label = parts[0][:strings.Index(parts[0], ":")]
 			parts = parts[1:]
 			ip.state = stateOperation
-			//fmt.Println("stateLabel:", parts)
 
 		case stateOperation:
-			i.Operation, err = NewOperation(parts[0])
+			i, err = NewInstruction(parts[0])
 			if err != nil {
 				return nil, err
 			}
+			i.SetLabel(Label(instruction_label))
+			i.SetText(line)
+
 			parts = parts[1:]
 			ip.state = stateDestination
-			//fmt.Println("changing to dest:", parts)
 
 		case stateDestination:
 			parts[0] = strings.Trim(parts[0], ",")
-			i.Destination, err = ParseOperand(parts[0])
+			destination, err := ParseOperand(parts[0])
 			if err != nil {
 				return nil, err
 			}
+			i.SetDestination(destination)
 			parts = parts[1:]
 			ip.state = stateOperand1
-			//fmt.Println("changing to op1:", parts)
 
 		case stateOperand1:
 			parts[0] = strings.Trim(parts[0], ",")
-			i.OperandA, err = ParseOperand(parts[0])
+			operandA, err := ParseOperand(parts[0])
 			if err != nil {
 				return nil, err
 			}
+			i.SetOperandA(operandA)
 			parts = parts[1:]
 			if len(parts) > 0 {
 				ip.state = stateOperand2
 			} else {
 				ip.state = stateFinished
 			}
-			//fmt.Println("changing to ..:", parts)
 
 		case stateOperand2:
 			parts[0] = strings.Trim(parts[0], ",")
-			i.OperandB, err = ParseOperand(parts[0])
+			operandB, err := ParseOperand(parts[0])
 			if err != nil {
 				return nil, err
 			}
+			i.SetOperandB(operandB)
 			parts = parts[1:]
 			if len(parts) > 0 {
 				return nil, errors.New(fmt.Sprintf("Extra content: %s", parts))
@@ -288,7 +291,7 @@ func (ip *instructionParser) Parse() (i *Instruction, err error) {
 	return i, nil
 }
 
-func ParseInstruction(input io.Reader) (*Instruction, error) {
+func ParseInstruction(input io.Reader) (Instruction, error) {
 	p, err := newInstructionParser(input)
 	if err != nil {
 		return nil, err

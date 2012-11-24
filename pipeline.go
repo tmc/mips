@@ -7,7 +7,7 @@ import (
 )
 
 type InstructionInPipeline struct {
-	*Instruction
+	Instruction
 	Stage PipelineStage
 }
 
@@ -17,8 +17,8 @@ type PipelineStage interface {
 	Initialize(cpu *CPU)
 	String() string
 	Step() error
+	SetInstruction(instruction *InstructionInPipeline) 
 	GetInstruction() *InstructionInPipeline
-	TransferInstruction()
 	Next() PipelineStage
 	Prev() PipelineStage
 	SetNext(PipelineStage)
@@ -80,8 +80,21 @@ func (p Pipeline) Empty() bool {
 	return allEmpty
 }
 
+func (p Pipeline) ActiveInstructions() []*InstructionInPipeline {
+	result := make([]*InstructionInPipeline, 0)
+	
+	for _, stage := range p {
+		iip := stage.GetInstruction()
+		if iip != nil {
+			result = append(result, iip)
+		}
+	}
+	
+	return result
+}
+
 type baseStage struct {
-	Instruction *InstructionInPipeline
+	instruction *InstructionInPipeline
 	cpu         *CPU
 	next        PipelineStage
 	prev        PipelineStage
@@ -96,8 +109,7 @@ func (s baseStage) String() string {
 }
 
 func (s *baseStage) Step() error {
-	fmt.Println("baseStage executed, halting.")
-	return CPUFinished
+	return nil
 }
 
 func (s *baseStage) Prev() PipelineStage {
@@ -117,18 +129,23 @@ func (s *baseStage) SetNext(p PipelineStage) {
 }
 
 func (s *baseStage) GetInstruction() *InstructionInPipeline {
-	return s.Instruction
+	return s.instruction
 }
 
-func (s *baseStage) TransferInstruction() {
-	prev := s.Prev()
-	if prev == nil {
+func (s *baseStage) SetInstruction(instruction *InstructionInPipeline) {
+	s.instruction = instruction
+}
+
+func (p *Pipeline) TransferInstruction(toStage PipelineStage) {
+	fromStage := toStage.Prev()
+	if fromStage == nil {
 		return
 	}
-	fmt.Println("Transferrring instruction from", prev, ":", s.Prev().GetInstruction())
-	s.Instruction = s.Prev().GetInstruction()
-	if s.Instruction != nil {
-		s.Instruction.Stage = s
+	inst := fromStage.GetInstruction()
+	toStage.SetInstruction(inst)
+	if inst != nil {
+		//fmt.Println("Transferrring instruction from", fromStage, "to", toStage, ":", toStage.GetInstruction())
+		inst.Stage = toStage
 	}
 }
 
@@ -141,21 +158,18 @@ type IF1 struct {
 }
 
 func (s *IF1) Step() error {
-	fmt.Println("IF1 executing")
-
-	fmt.Println(s.cpu)
-	if s.cpu.InstructionPointer == len(s.cpu.Code) {
-		fmt.Println("No more instructions")
-		s.Instruction = nil
+	if s.cpu.InstructionCacheEmpty() {
+		//fmt.Println("No more instructions")
+		s.instruction = nil
 	} else {
-		s.Instruction = &InstructionInPipeline{
-			s.cpu.Code[s.cpu.InstructionPointer],
+		s.instruction = &InstructionInPipeline{
+			s.cpu.InstructionCache[s.cpu.InstructionPointer],
 			s,
 		}
-		fmt.Println("Loaded new instruction:", s.Instruction)
+		fmt.Println("Issue:", s.instruction)
 		s.cpu.InstructionPointer += 1
 
-		s.Instruction.IF1()
+		s.instruction.IF1()
 
 	}
 	return nil
@@ -166,7 +180,7 @@ func (s IF1) String() string {
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// 
+// IF2
 /////////////////////////////////////////////////////////////////////////////
 
 type IF2 struct {
@@ -174,9 +188,8 @@ type IF2 struct {
 }
 
 func (s *IF2) Step() error {
-	fmt.Println("IF2 executed.")
-	if s.Instruction != nil {
-		s.Instruction.IF2()
+	if s.instruction != nil {
+		s.instruction.IF2()
 	}
 	return nil
 }
@@ -186,23 +199,31 @@ func (s IF2) String() string {
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// 
+// IF3
 /////////////////////////////////////////////////////////////////////////////
 
 type IF3 struct {
 	baseStage
 }
 
+func (s IF3) String() string {
+	return "IF3"
+}
+
 /////////////////////////////////////////////////////////////////////////////
-// 
+// ID
 /////////////////////////////////////////////////////////////////////////////
 
 type ID struct {
 	baseStage
 }
 
+func (s ID) String() string {
+	return "ID"
+}
+
 /////////////////////////////////////////////////////////////////////////////
-// 
+// EX
 /////////////////////////////////////////////////////////////////////////////
 
 type EX struct {
@@ -214,35 +235,46 @@ func (s EX) String() string {
 }
 
 func (s *EX) Step() error {
-	fmt.Println("EX executed.")
-	if s.Instruction != nil {
-		s.Instruction.EX()
+	if s.instruction != nil {
+		s.instruction.EX()
 	}
 	return nil
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// 
+// MEM1
 /////////////////////////////////////////////////////////////////////////////
 
 type MEM1 struct {
 	baseStage
 }
 
+func (s MEM1) String() string {
+	return "MEM1"
+}
+
 /////////////////////////////////////////////////////////////////////////////
-// 
+// MEM2
 /////////////////////////////////////////////////////////////////////////////
 
 type MEM2 struct {
 	baseStage
 }
 
+func (s MEM2) String() string {
+	return "MEM2"
+}
+
 /////////////////////////////////////////////////////////////////////////////
-// 
+// MEM3
 /////////////////////////////////////////////////////////////////////////////
 
 type MEM3 struct {
 	baseStage
+}
+
+func (s MEM3) String() string {
+	return "MEM3"
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -258,9 +290,8 @@ func (s WB) String() string {
 }
 
 func (s *WB) Step() error {
-	fmt.Println("WB executed.")
-	if s.Instruction != nil {
-		s.Instruction.EX()
+	if s.instruction != nil {
+		s.instruction.WB()
 	}
 	return nil
 }

@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestRunningEmptyCPU(t *testing.T) {
+func xTestRunningEmptyCPU(t *testing.T) {
 	m := NewCPU()
 	if m == nil {
 		t.Error("cpu == nil")
