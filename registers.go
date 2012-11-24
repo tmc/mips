@@ -50,19 +50,17 @@ func (r Registers) String() string {
 	result := ""
 	for i := 0; i < numRegisters; i++ {
 		if r[i] != 0 {
-			result += fmt.Sprintf("\n%s = %d", i, r[i])
+			result += fmt.Sprintf("\n%s = %d", Register(i), r[i])
 		}
 	}
 	return result
 }
 
-func (r *Registers) Set(register Register, value Word) Word {
-	if register == 0 {
-		return 0
-	} else {
+func (r *Registers) Set(register Register, value Word) error {
+	if register != 0 {
 		r[register] = value
 	}
-	return value
+	return nil
 }
 
 func (r *Registers) Get(register Register) Word {

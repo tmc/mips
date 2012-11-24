@@ -124,6 +124,8 @@ func (mp *cpuParser) Parse() (m *CPU, err error) {
 				}
 				mp.cpu.InstructionCache = append(mp.cpu.InstructionCache, instruction)
 
+				instruction.SetCPU(mp.cpu)
+
 				// if there's a label, store it in the label -> IC addr map
 				if instruction.Label() != "" {
 					mp.cpu.Labels[instruction.Label()] = len(mp.cpu.InstructionCache)

@@ -139,6 +139,7 @@ func (s *stage) SetInstruction(instruction *InstructionInPipeline) {
 func (p *Pipeline) TransferInstruction(toStage PipelineStage) {
 	fromStage := toStage.Prev()
 	if fromStage == nil {
+		toStage.SetInstruction(nil)
 		return
 	}
 	inst := fromStage.GetInstruction()
@@ -158,6 +159,12 @@ type IF1 struct{ stage }
 func (s IF1) String() string { return "IF1" }
 
 func (s *IF1) Step() error {
+	// if not pipelining, disable instruction fetch until pipeline is empty
+	if s.cpu.Mode == ModeNoPipeline && s.cpu.Pipeline.Empty() == false {
+		//fmt.Println("waiting for pipeline to empty")
+		return nil
+	}
+
 	if s.cpu.InstructionCacheEmpty() {
 		//fmt.Println("No more instructions")
 		s.instruction = nil
@@ -168,9 +175,7 @@ func (s *IF1) Step() error {
 		}
 		fmt.Println("Issue:", s.instruction)
 		s.cpu.InstructionPointer += 1
-
-		s.instruction.IF1()
-
+		return s.instruction.IF1()
 	}
 	return nil
 }
@@ -185,7 +190,7 @@ func (s IF2) String() string { return "IF2" }
 
 func (s *IF2) Step() error {
 	if s.instruction != nil {
-		s.instruction.IF2()
+		return s.instruction.IF2()
 	}
 	return nil
 }
@@ -200,7 +205,7 @@ func (s IF3) String() string { return "IF3" }
 
 func (s *IF3) Step() error {
 	if s.instruction != nil {
-		s.instruction.IF3()
+		return s.instruction.IF3()
 	}
 	return nil
 }
@@ -215,7 +220,7 @@ func (s ID) String() string { return "ID" }
 
 func (s *ID) Step() error {
 	if s.instruction != nil {
-		s.instruction.ID()
+		return s.instruction.ID()
 	}
 	return nil
 }
@@ -230,7 +235,7 @@ func (s EX) String() string { return "EX" }
 
 func (s *EX) Step() error {
 	if s.instruction != nil {
-		s.instruction.EX()
+		return s.instruction.EX()
 	}
 	return nil
 }
@@ -245,7 +250,7 @@ func (s MEM1) String() string { return "MEM1" }
 
 func (s *MEM1) Step() error {
 	if s.instruction != nil {
-		s.instruction.MEM1()
+		return s.instruction.MEM1()
 	}
 	return nil
 }
@@ -260,7 +265,7 @@ func (s MEM2) String() string { return "MEM2" }
 
 func (s *MEM2) Step() error {
 	if s.instruction != nil {
-		s.instruction.MEM2()
+		return s.instruction.MEM2()
 	}
 	return nil
 }
@@ -275,7 +280,7 @@ func (s MEM3) String() string { return "MEM3" }
 
 func (s *MEM3) Step() error {
 	if s.instruction != nil {
-		s.instruction.MEM3()
+		return s.instruction.MEM3()
 	}
 	return nil
 }
@@ -290,7 +295,7 @@ func (s WB) String() string { return "WB" }
 
 func (s *WB) Step() error {
 	if s.instruction != nil {
-		s.instruction.WB()
+		return s.instruction.WB()
 	}
 	return nil
 }

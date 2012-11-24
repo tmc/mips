@@ -6,12 +6,22 @@ import (
 	"fmt"
 )
 
+type CPUMode int
+
+const (
+	ModeNoPipeline = iota
+	ModeNoForwardingOrBypassing
+	ModeBranchPredictionTaken
+	ModeBranchPredictionNotTaken
+)
+
 type InstructionCache []Instruction
 
 var CPUFinished = errors.New("CPU Finished.")
 
 type CPU struct {
 	Registers          Registers
+	Mode               CPUMode
 	Cycle              int
 	Ram                Memory
 	InstructionCache   InstructionCache
@@ -45,6 +55,7 @@ func NewCPU() *CPU {
 
 func (cpu *CPU) Run() (err error) {
 	fmt.Println(len(cpu.InstructionCache), "instructions")
+
 	for err == nil {
 		err = cpu.Step()
 
@@ -62,7 +73,7 @@ func (cpu *CPU) Step() error {
 	//fmt.Println("#################### CYCLE", cpu.Cycle, "####################")
 
 	// Move instructions to next stage of pipeline (talk pipeline stages backwards)
-	for i := len(cpu.Pipeline) - 1; i > 0; i-- {
+	for i := len(cpu.Pipeline) - 1; i >= 0; i-- {
 		cpu.Pipeline.TransferInstruction(cpu.Pipeline[i])
 	}
 
@@ -70,7 +81,7 @@ func (cpu *CPU) Step() error {
 		//fmt.Println("################ stage", stage)
 		err := stage.Step()
 		if err != nil {
-			return err
+			return errors.New(fmt.Sprintf("Error while executing %s of %s: %s", stage, stage.GetInstruction(), err))
 		}
 	}
 

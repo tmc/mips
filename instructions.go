@@ -7,12 +7,12 @@ import (
 )
 
 type Instruction interface {
+	SetCPU(cpu *CPU)
 	OpCode() string
 	SetOpCode(opcode string)
 	String() string
 	Label() Label
 	SetLabel(label Label)
-	Text() string
 	SetText(text string)
 	Destination() Operand
 	SetDestination(o Operand)
@@ -52,6 +52,7 @@ type Operand struct {
 type Label string
 
 type instruction struct {
+	cpu         *CPU
 	label       Label
 	text        string
 	opcode      string
@@ -72,6 +73,22 @@ func (op Operand) String() string {
 		return op.text
 	}
 	return "@unknown@"
+}
+
+func (op Operand) Value(cpu *CPU) (value Word, err error) {
+	switch op.Type {
+	case operandTypeImmediate:
+		value = Word(op.Offset)
+	case operandTypeNormal:
+		value = cpu.Registers.Get(op.Register)
+	case operandTypeOffset:
+		value = cpu.Registers.Get(op.Register) + Word(op.Offset)
+	case operandTypeLabel:
+		value = Word(cpu.Labels[Label(op.text)])
+	default:
+		err = errors.New("Invalid operand type")
+	}
+	return value, err
 }
 
 ////////////////////////////////////////////////////////////////
@@ -125,8 +142,8 @@ func (i *instruction) SetLabel(label Label) {
 	i.label = label
 }
 
-func (i *instruction) Text() string {
-	return i.text
+func (i *instruction) SetCPU(cpu *CPU) {
+	i.cpu = cpu
 }
 
 func (i *instruction) SetText(text string) {
@@ -175,23 +192,94 @@ func (i *instruction) WB() error   { return nil }
 
 type LD struct {
 	instruction
+	value Word
 }
 
-func (s *LD) MEM1() error {
-	fmt.Println("MEM1 LD", s)
+func (i *LD) MEM1() error {
+	fmt.Println("MEM1 LD", i)
+
+	value, err := i.operandA.Value(i.cpu)
+	fmt.Printf("%#v\n", i.operandA)
+	if err != nil {
+		return err
+	}
+	fmt.Println("value", value)
+	fmt.Println("value", i.cpu.Ram[value])
+	i.value = i.cpu.Ram[value]
 	return nil
+}
+
+func (i *LD) WB() error {
+	fmt.Println("WD LD", i)
+	return i.cpu.Registers.Set(i.destination.Register, i.value)
 }
 
 type SD struct {
 	instruction
+	value Word
+}
+
+func (i *SD) WB() error {
+	fmt.Println("WD SD", i)
+	val, err := i.operandA.Value(i.cpu)
+	if err != nil {
+		return err
+	}
+	dest, err := i.destination.Value(i.cpu)
+	if err != nil {
+		return err
+	}
+	i.cpu.Ram[dest] = val
+	// @todo memory write errors, etc
+	return nil
+}
+
+type ALUInstruction struct {
+	instruction
+	value Word
+}
+
+func (i *ALUInstruction) WB() error {
+	fmt.Println("ALU LD", i)
+	return i.cpu.Registers.Set(i.destination.Register, i.value)
 }
 
 type DADD struct {
-	instruction
+	ALUInstruction
+}
+
+func (i *DADD) EX() error {
+	fmt.Println("DADD EX", i)
+	a, err := i.operandA.Value(i.cpu)
+	if err != nil {
+		return err
+	}
+	b, err := i.operandB.Value(i.cpu)
+	if err != nil {
+		return err
+	}
+	i.value = a + b
+	// @todo consider overflow
+	return nil
 }
 
 type DADDI struct {
-	instruction
+	ALUInstruction
+}
+
+func (i *DADDI) EX() error {
+	fmt.Println("DADDI EX", i)
+	a, err := i.operandA.Value(i.cpu)
+	if err != nil {
+		return err
+	}
+	b, err := i.operandB.Value(i.cpu)
+	if err != nil {
+		return err
+	}
+	i.value = a + b
+	// @todo consider overflow
+	return nil
 }
 
 type BNEZ struct {
