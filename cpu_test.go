@@ -5,7 +5,38 @@ import (
 	"testing"
 )
 
-func xTestRunningEmptyCPU(t *testing.T) {
+var CPU_TESTS = map[string]string{
+	"raw_hazard": `REGISTERS
+R1 1
+MEMORY
+0 7
+CODE
+      LD    R2,    0(R0) 
+      DADDI R3,    R2,    #3
+      SD    0(R1), R3
+`,
+	"branching_simple": `REGISTERS
+R1 3
+MEMORY
+0 7
+CODE
+Start: DADDI R1, R1, #-1
+       BNEZ R1, Start
+`,
+	"basic": `REGISTERS
+R1 2
+R3 22
+MEMORY
+0 7
+1 6
+2 20
+CODE
+Loop: LD    R2,    0(R1) 
+      DADD  R4,    R2,    R3
+      SD    0(R1), R4
+`}
+
+func TestRunningEmptyCPU(t *testing.T) {
 	m := NewCPU()
 	if m == nil {
 		t.Error("cpu == nil")
@@ -18,15 +49,7 @@ func xTestRunningEmptyCPU(t *testing.T) {
 }
 
 func TestRAWHazard(t *testing.T) {
-	cpu, err := ParseCPUString(`REGISTERS
-R1 1
-MEMORY
-0 7
-CODE
-      LD    R2,    0(R0) 
-      DADDI R3,    R2,    #3
-      SD    0(R1), R3
-`)
+	cpu, err := ParseCPUString(CPU_TESTS["raw_hazard"])
 	if cpu == nil {
 		t.Error("cpu == nil")
 	}
@@ -44,19 +67,26 @@ CODE
 	}
 }
 
-func xTestRunningSimpleCPU(t *testing.T) {
-	cpu, err := ParseCPUString(`REGISTERS
-R1 2
-R3 22
-MEMORY
-0 7
-1 6
-2 20
-CODE
-Loop: LD    R2,    0(R1) 
-      DADD  R4,    R2,    R3
-      SD    0(R1), R4
-`)
+func TestBranching(t *testing.T) {
+	cpu, err := ParseCPUString(CPU_TESTS["branching_simple"])
+	if cpu == nil {
+		t.Error("cpu == nil")
+	}
+	if err != nil {
+		t.Error(err)
+	}
+	err = cpu.Run()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if cpu.Registers.Get(R1) != 0 {
+		t.Fatal(cpu.Registers.Get(R1), "!=", 0)
+	}
+}
+
+func TestRunningBasicProgram(t *testing.T) {
+	cpu, err := ParseCPUString(CPU_TESTS["basic"])
 	if cpu == nil {
 		t.Error("cpu == nil")
 	}

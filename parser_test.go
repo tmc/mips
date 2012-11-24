@@ -24,7 +24,7 @@ func testLiteral(test string) io.Reader {
 	return strings.NewReader(test)
 }
 
-var CPU_TESTS = []string{
+var PARSER_CPU_TESTS = []string{
 	// Empty case
 	`REGISTERS
 MEMORY
@@ -53,7 +53,7 @@ func testCPUsEqual(m1, m2 *CPU) bool {
 }
 
 func TestParsingSmallest(t *testing.T) {
-	cpu, err := ParseCPU(testLiteral(CPU_TESTS[0]))
+	cpu, err := ParseCPU(testLiteral(PARSER_CPU_TESTS[0]))
 	if err != nil {
 		t.Error(err)
 	}
@@ -63,7 +63,7 @@ func TestParsingSmallest(t *testing.T) {
 }
 
 func TestParsingSimpleRegisterSet(t *testing.T) {
-	cpu, err := ParseCPU(testLiteral(CPU_TESTS[1]))
+	cpu, err := ParseCPU(testLiteral(PARSER_CPU_TESTS[1]))
 	if err != nil {
 		t.Error(err)
 	}
@@ -76,7 +76,7 @@ func TestParsingSimpleRegisterSet(t *testing.T) {
 }
 
 func TestParsingRegistersAndMemorySet(t *testing.T) {
-	cpu, err := ParseCPU(testLiteral(CPU_TESTS[2]))
+	cpu, err := ParseCPU(testLiteral(PARSER_CPU_TESTS[2]))
 	if err != nil {
 		t.Error(err)
 	}
