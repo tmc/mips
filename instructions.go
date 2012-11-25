@@ -465,7 +465,7 @@ func (i *BNEZ) ID() (err error) {
 		} else {
 			//fmt.Println("setting pc to start!", i.nextPC)
 			i.cpu.InstructionPointer = i.nextPC
-		
+			return FlushPipeline
 		}
 
 	case branchModePredictNotTaken:
