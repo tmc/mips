@@ -13,6 +13,7 @@ type ExecutedInstruction struct {
 	Instruction
 	Stage       PipelineStage
 	Stages      map[string]int // map of Stages to cycle at which that stage was entered
+	Cycles      map[int]string // map of cycles to Stages
 	CycleStart  int
 	CycleFinish int
 	CycleFlush  int
@@ -79,6 +80,7 @@ func (p Pipeline) Execute() error {
 			// entered stage successfully, record timing if an instruction is present
 			if i := stage.GetInstruction(); i != nil {
 				i.Stages[stage.String()] = p.cpu().Cycle
+				i.Cycles[p.cpu().Cycle] = stage.String()
 			}
 		}
 	}
@@ -161,9 +163,22 @@ func (p Pipeline) Flush(currentCycle int) {
 		i := stage.GetInstruction()
 		if i != nil {
 			i.CycleFlush = currentCycle
+			i.CycleFinish = currentCycle
 		}
 		stage.SetInstruction(nil)
 	}
+}
+
+func (p Pipeline) StageNames() (result []string) {
+	if result, cached := stageStringCache[&p]; cached {
+		return result
+	}
+	result = make([]string, 0)
+	for _, stage := range p {
+		result = append(result, stage.String())
+	}
+	stageStringCache[&p] = result
+	return result
 }
 
 func (p Pipeline) ActiveInstructions() []*ExecutedInstruction {
@@ -259,6 +274,7 @@ func (s *IF1) Step() error {
 			Instruction: s.cpu.InstructionCache[s.cpu.InstructionPointer],
 			Stage:       s,
 			Stages:      make(map[string]int, 0),
+			Cycles:      make(map[int]string, 0),
 			CycleStart:  s.cpu.Cycle, // Start
 			CycleFinish: -1,
 			CycleFlush:  -1,
@@ -402,4 +418,11 @@ func (s *WB) Step() error {
 		s.instruction.CycleFinish = s.cpu.Cycle
 	}
 	return nil
+}
+
+// internal caching for stage list generation
+var stageStringCache map[*Pipeline][]string
+
+func init() {
+	stageStringCache = make(map[*Pipeline][]string)
 }
