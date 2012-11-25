@@ -2,6 +2,7 @@
 package mips
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 )
@@ -17,7 +18,10 @@ const (
 
 type InstructionCache []Instruction
 
-var CPUFinished = errors.New("CPU Finished.")
+var (
+	CPUFinished          = errors.New("CPU Finished.")
+	MaximumCyclesReached = errors.New("Maximum Cycles Reached.")
+)
 
 type CPU struct {
 	Registers          *Registers
@@ -57,13 +61,16 @@ func NewCPU() *CPU {
 	return cpu
 }
 
-func (cpu *CPU) Run() (err error) {
+func (cpu *CPU) Run(maximumCycles int) (err error) {
 	fmt.Println(len(cpu.InstructionCache), "instructions")
 	fmt.Println("#################### RUN ##########################")
 	for err == nil {
 		err = cpu.Step()
-
 		fmt.Print(cpu.RenderState())
+
+		if maximumCycles > 0 && cpu.Cycle == maximumCycles {
+			return MaximumCyclesReached
+		}
 	}
 	if err == CPUFinished {
 		return nil
@@ -95,11 +102,11 @@ func (cpu *CPU) Step() error {
 }
 
 func (cpu *CPU) RenderState() string {
-	result := ""
+	result := new(bytes.Buffer)
 	// spacing helper
-	print := spacingHelper(12)
+	print := spacingHelper(10, result)
 
-	result += print("c#%d", cpu.Cycle)
+	print("c#%d", cpu.Cycle)
 	for _, inst := range cpu.Instructions {
 		inPipeline := false
 		for _, iip := range cpu.Pipeline.ActiveInstructions() {
@@ -108,24 +115,78 @@ func (cpu *CPU) RenderState() string {
 				stalled := iip.Stage.Stalled()
 				if stalled {
 					//print("(s) %s", iip.OpCode())
-					result += print("(s)")
+					print("(s)")
 				} else {
 					//print("%s %s", iip.Stage, iip.OpCode())
 					if iip.Stage.String() == "IF1" {
-						result += print("%s:%s", iip.Stage, iip.Instruction.OpCode())
+						print("%s:%s", iip.Stage, iip.Instruction.OpCode())
 					} else {
-						result += print("%s", iip.Stage)
+						print("%s", iip.Stage)
 					}
 
 				}
 			}
 		}
 		if inPipeline == false {
-			result += print("")
+			print("")
 		}
 	}
+	result.WriteString("\n")
+	//fmt.Println("\nstate: ", result)
+	return string(result.Bytes())
+}
+
+func (cpu *CPU) RenderTiming() string {
+	result := ""
+
+	// render header
+	format := "%-6s"
+	result += fmt.Sprintf(format, "")
+	for i, _ := range cpu.Instructions {
+		result += fmt.Sprintf(format, fmt.Sprintf("I#%d", i+1))
+	}
 	result += "\n"
+
+	// render for each cycle
+	for i := 1; i <= cpu.Cycle; i++ {
+		result += cpu.RenderTimingForCycle(i)
+		result += "\n"
+	}
 	return result
+}
+
+func (cpu *CPU) RenderTimingForCycle(cycle int) string {
+	result := new(bytes.Buffer)
+	print := spacingHelper(6, result)
+	print("c#%d", cycle)
+
+	for _, inst := range cpu.Instructions {
+		switch {
+		case cycle < inst.CycleStart:
+			print(".")
+		case cycle > inst.CycleFinish:
+			print("")
+		case cycle == inst.CycleFlush:
+			print("(fl)")
+		case cycle == inst.CycleStart:
+			print("IF1")
+		case cycle < inst.Stages["ID"]-2:
+			print("(s)")
+		case cycle == inst.Stages["ID"]-2:
+			print("IF2")
+		case cycle == inst.Stages["ID"]-1:
+			print("IF3")
+		default:
+			if stage, ok := inst.Cycles[cycle]; ok {
+				print(stage)
+			} else {
+				print("o")
+			}
+		}
+
+	}
+
+	return string(result.Bytes())
 }
 
 func (cpu *CPU) InstructionCacheEmpty() bool {
