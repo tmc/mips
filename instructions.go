@@ -354,16 +354,8 @@ func (i *DADD) ID() (err error) {
 
 func (i *DADD) EX() error {
 	//fmt.Println("DADD EX", i)
-	a, err := i.operandA.Value(i.cpu)
-	if err != nil {
-		return err
-	}
-	b, err := i.operandB.Value(i.cpu)
-	if err != nil {
-		return err
-	}
-	i.value = a + b
-	// @todo consider overflow
+	// @todo consider overflow?
+	i.value = i.t1 + i.t2
 
 	if i.cpu.ForwardingEnabled == true {
 		return i.performWB()
