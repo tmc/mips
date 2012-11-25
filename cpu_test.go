@@ -82,7 +82,7 @@ Next: LD    R6,    0(R5)
 `,
 }
 
-func xTestRunningEmptyCPU(t *testing.T) {
+func TestRunningEmptyCPU(t *testing.T) {
 	cpu := NewCPU()
 	if cpu == nil {
 		t.Error("cpu == nil")
@@ -93,7 +93,7 @@ func xTestRunningEmptyCPU(t *testing.T) {
 	}
 }
 
-func xTestRAWHazard(t *testing.T) {
+func TestRAWHazard(t *testing.T) {
 	cpu, err := ParseCPUString(CPU_TESTS["raw_hazard"])
 	if cpu == nil {
 		t.Error("cpu == nil")
@@ -102,7 +102,7 @@ func xTestRAWHazard(t *testing.T) {
 		t.Error(err)
 	}
 	//cpu.ForwardingEnabled = true
-	err = cpu.Run(15)
+	err = cpu.Run(35)
 	if err != nil {
 		t.Error(err)
 	}
@@ -114,7 +114,7 @@ func xTestRAWHazard(t *testing.T) {
 	}
 }
 
-func xTestBranching(t *testing.T) {
+func TestBranching(t *testing.T) {
 	cpu, err := ParseCPUString(CPU_TESTS["branching_simple"])
 	if cpu == nil {
 		t.Error("cpu == nil")
@@ -136,7 +136,7 @@ func xTestBranching(t *testing.T) {
 	}
 }
 
-func xTestRunningBasicProgram(t *testing.T) {
+func TestRunningBasicProgram(t *testing.T) {
 	cpu, err := ParseCPUString(CPU_TESTS["basic"])
 	if cpu == nil {
 		t.Error("cpu == nil")
@@ -164,12 +164,13 @@ MEMORY:
 
 func TestSameOutputRegardlessOfFlags(t *testing.T) {
 	for testName, test := range CPU_TESTS {
-		if strings.HasPrefix(testName, "provided0") == false {
+		if strings.HasPrefix(testName, "provided") == false {
 			continue
 		}
 		cpu, _ := ParseCPUString(test)
 		if err := cpu.Run(100); err != nil{
 
+		/*
 		fmt.Println("######### PROGRAM ", testName)
 		fmt.Println("######### CODE")
 		fmt.Println(test)
@@ -177,11 +178,13 @@ func TestSameOutputRegardlessOfFlags(t *testing.T) {
 		fmt.Println(cpu.String())
 		fmt.Println("######### Timing")
 		fmt.Println(cpu.RenderTiming())
+		*/
 
 			t.Fatal(testName, "nf", err)
 		}
 
 		a := cpu.String()
+		timing := cpu.RenderTiming()
 
 		cpu, _ = ParseCPUString(test)
 		cpu.ForwardingEnabled = true
@@ -191,7 +194,7 @@ func TestSameOutputRegardlessOfFlags(t *testing.T) {
 		}
 
 		b := cpu.String()
-		timing := cpu.RenderTiming()
+		timingPT := cpu.RenderTiming()
 
 		cpu, _ = ParseCPUString(test)
 		cpu.ForwardingEnabled = true
@@ -201,6 +204,7 @@ func TestSameOutputRegardlessOfFlags(t *testing.T) {
 		}
 
 		c := cpu.String()
+		timingPNT := cpu.RenderTiming()
 
 		if a != b {
 			t.Error("'%s' != '%s'", a, b)
@@ -213,7 +217,12 @@ func TestSameOutputRegardlessOfFlags(t *testing.T) {
 		fmt.Println(test)
 		fmt.Println("######### Result")
 		fmt.Println(a)
-		fmt.Println("######### Timing")
+		fmt.Println("\n\n######### Timing No Forwarding")
 		fmt.Println(timing)
+		fmt.Println("\n\n######### Timing Forwarding + Predict Taken")
+		fmt.Println(timingPT)
+		fmt.Println("\n\n######### Timing Forwarding + Predict Not Taken")
+		fmt.Println(timingPNT)
+
 	}
 }
