@@ -62,11 +62,11 @@ func NewCPU() *CPU {
 }
 
 func (cpu *CPU) Run(maximumCycles int) (err error) {
-	fmt.Println("#################### RUN ##########################", len(cpu.InstructionCache), "instructions")
+	//fmt.Println("#################### RUN ##########################", len(cpu.InstructionCache), "instructions")
 	for err == nil {
 		err = cpu.Step()
 
-		// Render state
+		//Render state
 		//fmt.Print(cpu.RenderState())
 
 		if maximumCycles > 0 && cpu.Cycle == maximumCycles {
