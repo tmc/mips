@@ -196,7 +196,6 @@ func (i *instruction) AcquireDestintion() {
 }
 
 func (i *instruction) ReleaseDestintion() {
-	fmt.Println("releasing", i)
 	if i.destinationAcquired {
 		i.cpu.Registers.Release(i.destination.Register)
 		i.destinationAcquired = false
