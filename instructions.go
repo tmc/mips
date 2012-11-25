@@ -28,6 +28,7 @@ type Instruction interface {
 	SetOperandA(o Operand)
 	OperandB() Operand
 	SetOperandB(o Operand)
+	Flush()
 
 	IF1() error
 	IF2() error
@@ -67,6 +68,7 @@ type instruction struct {
 	destination Operand
 	operandA    Operand
 	operandB    Operand
+	destinationAcquired bool
 }
 
 func (op Operand) String() string {
@@ -188,6 +190,23 @@ func (i *instruction) SetOperandB(o Operand) {
 	i.operandB = o
 }
 
+func (i *instruction) AcquireDestintion() {
+	i.cpu.Registers.Acquire(i.destination.Register)
+	i.destinationAcquired = true
+}
+
+func (i *instruction) ReleaseDestintion() {
+	fmt.Println("releasing", i)
+	if i.destinationAcquired {
+		i.cpu.Registers.Release(i.destination.Register)
+		i.destinationAcquired = false
+	}
+}
+
+func (i *instruction) Flush() {
+	i.ReleaseDestintion()
+}
+
 // Default blank stage implementations
 
 func (i *instruction) IF1() error  { return nil }
@@ -199,6 +218,7 @@ func (i *instruction) MEM1() error { return nil }
 func (i *instruction) MEM2() error { return nil }
 func (i *instruction) MEM3() error { return nil }
 func (i *instruction) WB() error   { return nil }
+
 
 ////////////////////////////////////////////////////////////////
 // Actual Instruction Implementations
@@ -224,7 +244,7 @@ func (i *LD) ID() error {
 		return err
 	}
 	i.address = val
-	i.cpu.Registers.Acquire(i.destination.Register)
+	i.AcquireDestintion()
 
 	return nil
 }
@@ -243,7 +263,7 @@ func (i *LD) MEM3() error {
 }
 
 func (i *LD) performWB() error {
-	i.cpu.Registers.Release(i.destination.Register)
+	i.ReleaseDestintion()
 	return i.cpu.Registers.Set(i.destination.Register, i.value)
 }
 
@@ -298,7 +318,7 @@ type ALUInstruction struct {
 }
 
 func (i *ALUInstruction) performWB() error {
-	i.cpu.Registers.Release(i.destination.Register)
+	i.ReleaseDestintion()
 	return i.cpu.Registers.Set(i.destination.Register, i.value)
 }
 
@@ -328,7 +348,7 @@ func (i *DADD) ID() (err error) {
 	if err != nil {
 		return err
 	}
-	i.cpu.Registers.Acquire(i.destination.Register)
+	i.AcquireDestintion()
 	return nil
 }
 
@@ -370,7 +390,7 @@ func (i *DADDI) ID() (err error) {
 	if err != nil {
 		return err
 	}
-	i.cpu.Registers.Acquire(i.destination.Register)
+	i.AcquireDestintion()
 	return nil
 }
 
