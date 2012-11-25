@@ -6,10 +6,12 @@ import (
 )
 
 var (
-	RAWException  = errors.New("RAW Exception")
-	WARException  = errors.New("WAR Exception")
-	WAWException  = errors.New("WAW Exception")
-	BranchOccured = errors.New("Branch Occurred")
+	RAWHazard       = errors.New("RAW Hazard")
+	WARHazard       = errors.New("WAR Hazard")
+	WAWHazard       = errors.New("WAW Hazard")
+	Stall           = errors.New("Stall")
+	FlushPipeline   = errors.New("Pipeline should flush")
+	BranchResolving = errors.New("Branch is resolving")
 )
 
 type Instruction interface {
@@ -87,12 +89,12 @@ func (op Operand) Value(cpu *CPU) (value Word, err error) {
 		value = Word(op.Offset)
 	case operandTypeNormal:
 		if cpu.Registers.Locked(op.Register) {
-			return value, RAWException
+			return value, RAWHazard
 		}
 		value = cpu.Registers.Get(op.Register)
 	case operandTypeOffset:
 		if cpu.Registers.Locked(op.Register) {
-			return value, RAWException
+			return value, RAWHazard
 		}
 		value = cpu.Registers.Get(op.Register) + Word(op.Offset)
 	case operandTypeLabel:
@@ -217,7 +219,6 @@ type LD struct {
 }
 
 func (i *LD) ID() error {
-
 	val, err := i.operandA.Value(i.cpu)
 	if err != nil {
 		return err
@@ -389,7 +390,22 @@ func (i *DADDI) EX() error {
 
 type BNEZ struct {
 	instruction
-	target Word
+	target  Word
+	nextPC int
+}
+
+func (i *BNEZ) IF1() (err error) {
+	//fmt.Println("BNEZ IF1")
+	i.nextPC = i.cpu.InstructionPointer
+	switch i.cpu.BranchMode {
+	case branchModeFlush:
+		return BranchResolving
+	case branchModePredictNotTaken:
+		return nil
+	case branchModePredictTaken:
+		return nil
+	}
+	return nil
 }
 
 func (i *BNEZ) IF2() (err error) {
@@ -397,20 +413,69 @@ func (i *BNEZ) IF2() (err error) {
 	if err != nil {
 		return err
 	}
+	switch i.cpu.BranchMode {
+	case branchModeFlush:
+		return BranchResolving
+	case branchModePredictNotTaken:
+		return nil
+	case branchModePredictTaken:
+		//fmt.Println("Predicting taken, flushing and setting PC")
+		i.cpu.InstructionPointer = int(i.target)
+		return FlushPipeline
+	}
+	return nil
+}
+
+func (i *BNEZ) IF3() (err error) {
+	//fmt.Println("BNEZ IF3")
+	if i.cpu.BranchMode == branchModeFlush {
+		return BranchResolving
+	}
 	return nil
 }
 
 func (i *BNEZ) ID() (err error) {
+	//fmt.Println("BNEZ ID")
 	// note, "destination" is a misnomer, the second argument, operandA is the target
 	val, err := i.destination.Value(i.cpu)
 	if err != nil {
+		//fmt.Println("BNEZ ", err)
 		return err
 	}
-	if val == 0 {
-		return nil
-	} else {
-		i.cpu.InstructionPointer = int(i.target)
-		return BranchOccured
+	//fmt.Println("BNEZ GO")
+	branchTaken := val != 0
+	switch i.cpu.BranchMode {
+	case branchModeFlush:
+		if branchTaken {
+			//fmt.Println("setting pc!", i.target, val)
+			i.cpu.InstructionPointer = int(i.target)
+			return FlushPipeline
+		} else {
+			//fmt.Println("setting pc to start!", i.nextPC)
+			i.cpu.InstructionPointer = i.nextPC
+		
+		}
+
+	case branchModePredictNotTaken:
+		if branchTaken {
+			//fmt.Println("prediction incorrect, setting pc and flushing!", i.target)
+			i.cpu.InstructionPointer = int(i.target)
+			return FlushPipeline
+		} else {
+			//fmt.Println("prediction correct! continuing normally", i.target)
+			return nil
+		}
+
+	case branchModePredictTaken:
+		if branchTaken {
+			//fmt.Println("prediction correct, continuing normally!")
+			return nil
+		} else {
+			//fmt.Println("prediction incorrect, setting pc and flushing!", i.target)
+			i.cpu.InstructionPointer = int(i.nextPC)
+			return FlushPipeline
+		}
 	}
+
 	return nil
 }
