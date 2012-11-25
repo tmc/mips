@@ -62,11 +62,12 @@ func NewCPU() *CPU {
 }
 
 func (cpu *CPU) Run(maximumCycles int) (err error) {
-	fmt.Println(len(cpu.InstructionCache), "instructions")
-	fmt.Println("#################### RUN ##########################")
+	fmt.Println("#################### RUN ##########################", len(cpu.InstructionCache), "instructions")
 	for err == nil {
 		err = cpu.Step()
-		fmt.Print(cpu.RenderState())
+
+		// Render state
+		//fmt.Print(cpu.RenderState())
 
 		if maximumCycles > 0 && cpu.Cycle == maximumCycles {
 			return MaximumCyclesReached
@@ -80,25 +81,23 @@ func (cpu *CPU) Run(maximumCycles int) (err error) {
 
 func (cpu *CPU) Step() error {
 
-	cpu.Cycle += 1
 
-	//fmt.Println("#################### CYCLE", cpu.Cycle, "####################")
-
-	// Move instructions to next stage of pipeline (unless a stage is stalled)
+	// First Move instructions to next stage of pipeline
 	if err := cpu.Pipeline.TransferInstructions(); err != nil {
 		return err
 	}
 
-	if err := cpu.Pipeline.Execute(); err != nil {
-		return err
-	}
-
+	// Then check if execution is complete
 	if cpu.Pipeline.Empty() && cpu.InstructionCacheEmpty() {
-		//fmt.Println("pipeline empty", len(cpu.Pipeline.ActiveInstructions()))
+		//fmt.Println("pipeline empty", cpu.InstructionCacheEmpty(), cpu.InstructionPointer, cpu.Cycle)
 		return CPUFinished
 	}
 
-	return nil
+	// If not, increase cycle count and execute pipeline
+	//fmt.Println("#################### CYCLE", cpu.Cycle, "####################")
+	cpu.Cycle += 1
+
+	return cpu.Pipeline.Execute()
 }
 
 func (cpu *CPU) RenderState() string {
@@ -118,7 +117,7 @@ func (cpu *CPU) RenderState() string {
 					print("(s)")
 				} else {
 					//print("%s %s", iip.Stage, iip.OpCode())
-					if iip.Stage.String() == "IF1" {
+					if iip.CycleStart == cpu.Cycle {
 						print("%s:%s", iip.Stage, iip.Instruction.OpCode())
 					} else {
 						print("%s", iip.Stage)
@@ -166,10 +165,13 @@ func (cpu *CPU) RenderTimingForCycle(cycle int) string {
 			print(".")
 		case cycle > inst.CycleFinish:
 			print("")
-		case cycle == inst.CycleFlush:
-			print("(fl)")
 		case cycle == inst.CycleStart:
 			print("IF1")
+		// consider flushed cycles
+		case cycle == inst.CycleFlush:
+			print("(fl)")
+		case inst.CycleFlush != -1 && cycle < inst.CycleFlush:
+			print("(fl)")
 		case cycle < inst.Stages["ID"]-2:
 			print("(s)")
 		case cycle == inst.Stages["ID"]-2:
@@ -180,7 +182,7 @@ func (cpu *CPU) RenderTimingForCycle(cycle int) string {
 			if stage, ok := inst.Cycles[cycle]; ok {
 				print(stage)
 			} else {
-				print("o")
+				print("(s)")
 			}
 		}
 
