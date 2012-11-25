@@ -73,14 +73,23 @@ func (r Registers) String() string {
 }
 
 func (r *Registers) Acquire(register Register) {
+	if register == R0 {
+		return
+	}
 	r.locks[register] += 1
 }
 
 func (r *Registers) Locked(register Register) bool {
+	if register == R0 {
+		return false
+	}
 	return r.locks[register] > 0
 }
 
 func (r *Registers) Release(register Register) {
+	if register == R0 {
+		return
+	}
 	r.locks[register] -= 1
 	if r.locks[register] < 0 {
 		panic("over-released")
