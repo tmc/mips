@@ -214,6 +214,7 @@ func (p Pipeline) FlushBefore(stage PipelineStage) {
 		//fmt.Println("flushing", stage, stage.GetInstruction())
 		i := stage.GetInstruction()
 		if i != nil {
+			i.Flush()
 			i.CycleFlush = p.cpu().Cycle
 			i.CycleFinish = p.cpu().Cycle
 		}
