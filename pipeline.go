@@ -57,34 +57,97 @@ func NewPipeline(cpu *CPU, stages ...PipelineStage) (Pipeline, error) {
 
 func (p Pipeline) cpu() *CPU { return p[0].CPU() }
 
+func (p Pipeline) Reverse() []PipelineStage {
+	result := make([]PipelineStage, len(p))
+	for i := 0; i < len(p); i++ {
+		result[i] = p[len(p)-i-1]
+	}
+	return result
+}
+
 // Execute a cycle in the pipeline
 func (p Pipeline) Execute() error {
 
-	// walk pipeline back to front to allow writes to occur before reads
+	// run pipeline pipeline stages back to front to execute older instructions first
+	//for _, stage := range p.Reverse() {
 	for i := len(p) - 1; i >= 0; i-- {
 		stage := p[i]
-		stage.Unstall()
+		//fmt.Println("EXEC", stage, &stage)
+		if stage.GetInstruction() != nil {
+			//fmt.Println(p.cpu().Cycle, "EXECUTING STAGE", stage, stage.GetInstruction())
+		}
 
-		switch err := stage.Step(); {
-		case err == RAWException:
-			//fmt.Println("STALL in", stage, stage.GetInstruction())
-			stage.Stall()
-		case err == BranchOccured:
-			if p.cpu().BranchMode == branchModeFlush {
-				p.Flush(p.cpu().Cycle)
-				break
+		/*
+			if stage.String() == "IF1" || stage.String() == "IF2" {
+				if stage.Next() != nil {
+					fmt.Printf("PREXFER %s %s %s %s\n", stage, stage.GetInstruction(), stage.Next(), stage.Next().GetInstruction())
+					fmt.Printf("PREXFER* %p %p %p %p\n", stage, stage.GetInstruction(), stage.Next(), stage.Next().GetInstruction())
+				}
 			}
+
+			p.TransferInstruction(stage)
+
+			if stage.String() == "IF1" || stage.String() == "IF2" {
+				if stage.Next() != nil {
+					fmt.Printf("POSTXFER %s %s %s %s\n", stage, stage.GetInstruction(), stage.Next(), stage.Next().GetInstruction())
+					fmt.Printf("POSTXFER* %p %p %p %p\n", stage, stage.GetInstruction(), stage.Next(), stage.Next().GetInstruction())
+				}
+			}
+		*/
+
+		stage.Unstall()
+		switch err := stage.Step(); {
+		case err == RAWHazard:
+			//fmt.Println("RAWHazard in", stage, stage.GetInstruction(), "stalling")
+			stage.Stall()
+			return nil
+		case err == FlushPipeline:
+			// flush and finish cycle
+			p.FlushBefore(stage)
+			i = 0
+			p.RecordTiming(stage)
+		case err == BranchResolving:
+			p.StallBefore(stage)
+			p.RecordTiming(stage)
+		case err == nil:
+			// entered stage successfully, record timing if an instruction is present
+			p.RecordTiming(stage)
 		case err != nil:
 			return errors.New(fmt.Sprintf("Error while executing %s of %s: %s", stage, stage.GetInstruction(), err))
-		default:
-			// entered stage successfully, record timing if an instruction is present
-			if i := stage.GetInstruction(); i != nil {
-				i.Stages[stage.String()] = p.cpu().Cycle
-				i.Cycles[p.cpu().Cycle] = stage.String()
-			}
 		}
+
 	}
 	return nil
+}
+
+func (p Pipeline) TransferInstruction(fromStage PipelineStage) error {
+	if fromStage.Stalled() {
+		//fmt.Println("TransferInstruction fromstage stalled", fromStage)
+		return nil
+	}
+	instruction := fromStage.GetInstruction()
+	toStage := fromStage.Next()
+	if toStage != nil {
+		if instruction != nil {
+			//fmt.Println("TransferInstruction ", fromStage, toStage, instruction)
+		}
+		toStage.SetInstruction(instruction)
+		if instruction != nil {
+			//fmt.Println("TransferInstruction ::: ", toStage.GetInstruction(), &toStage)
+		}
+	}
+	if instruction != nil {
+		instruction.Stage = toStage
+	}
+	fromStage.SetInstruction(nil)
+	return nil
+}
+
+func (p Pipeline) RecordTiming(stage PipelineStage) {
+	if i := stage.GetInstruction(); i != nil {
+		i.Stages[stage.String()] = p.cpu().Cycle
+		i.Cycles[p.cpu().Cycle] = stage.String()
+	}
 }
 
 func (p Pipeline) TransferInstructions() error {
@@ -92,35 +155,14 @@ func (p Pipeline) TransferInstructions() error {
 		stage := p[i]
 		err := p.TransferInstruction(stage)
 		if err == PipelineStall {
-			//fmt.Println("Encountered stall, stopping instruction transfer.")
-			//break
+			fmt.Println("Encountered stall, stopping instruction transfer.")
+			break
 		} else if err != nil {
 			return err
 		}
 	}
 	return nil
 }
-
-func (p Pipeline) TransferInstruction(toStage PipelineStage) error {
-	fromStage := toStage.Prev()
-	if fromStage == nil {
-		return nil
-	}
-	if fromStage.Stalled() || toStage.Stalled() {
-		//fmt.Println(fromStage, "stalled:", fromStage.GetInstruction())
-		return PipelineStall
-	}
-	//fmt.Println("\t\tTransfer instruction from", fromStage, "to", toStage, ":", fromStage.GetInstruction())
-	inst := fromStage.GetInstruction()
-	toStage.SetInstruction(inst)
-	fromStage.SetInstruction(nil)
-	if inst != nil {
-		//fmt.Println("\t\tTransfer instruction from", fromStage, "to", toStage, ":", toStage.GetInstruction())
-		inst.Stage = toStage
-	}
-	return nil
-}
-
 func (p Pipeline) GetNextStage(s PipelineStage) PipelineStage {
 	index := -1
 	for i, stage := range p {
@@ -158,7 +200,30 @@ func (p Pipeline) Empty() bool {
 	return allEmpty
 }
 
-func (p Pipeline) Flush(currentCycle int) {
+func (p Pipeline) StallBefore(stage PipelineStage) {
+	stage = stage.Prev()
+	for stage != nil {
+		stage.Stall()
+		stage = stage.Prev()
+	}
+}
+
+func (p Pipeline) FlushBefore(stage PipelineStage) {
+	stage = stage.Prev()
+	for stage != nil {
+		//fmt.Println("flushing", stage, stage.GetInstruction())
+		i := stage.GetInstruction()
+		if i != nil {
+			i.CycleFlush = p.cpu().Cycle
+			i.CycleFinish = p.cpu().Cycle
+		}
+		stage.SetInstruction(nil)
+		//fmt.Println("flushed", stage, stage.GetInstruction())
+		stage = stage.Prev()
+	}
+}
+
+func (p Pipeline) xFlush(currentCycle int) {
 	for _, stage := range p {
 		i := stage.GetInstruction()
 		if i != nil {
@@ -210,6 +275,10 @@ func (s *stage) CPU() *CPU {
 	return s.cpu
 }
 
+func (s *stage) Addr() string {
+	return fmt.Sprint(&s)
+}
+
 func (s stage) String() string {
 	return "unknown"
 }
@@ -254,6 +323,16 @@ func (s *stage) SetInstruction(instruction *ExecutedInstruction) {
 // IF1
 /////////////////////////////////////////////////////////////////////////////
 
+func (s *IF1) GetInstruction() *ExecutedInstruction {
+	//fmt.Printf("IF1 GetInstruction : %p %p\n", s, s.instruction)
+	return s.instruction
+}
+
+func (s *IF1) SetInstruction(instruction *ExecutedInstruction) {
+	//fmt.Printf("IF1 SetInstruction : %p %p\n", s, instruction)
+	s.instruction = instruction
+}
+
 type IF1 struct{ stage }
 
 func (s IF1) String() string { return "IF1" }
@@ -262,7 +341,7 @@ func (s *IF1) Step() error {
 
 	// If we already have an instruction (as a result of a stall) then no-op
 	if s.instruction != nil {
-		//fmt.Println("not loading new instruction, stalled.")
+		fmt.Println("not loading new instruction, stalled.", s.instruction.OpCode())
 		return nil
 	}
 
@@ -329,15 +408,11 @@ type ID struct{ stage }
 func (s ID) String() string { return "ID" }
 
 func (s *ID) Step() error {
+
 	if s.instruction == nil {
 		return nil
 	}
 	err := s.instruction.ID()
-
-	// if we've successfully entered this stage, record cycle at which that occurred
-	if err == nil {
-		s.instruction.Stages[s.String()] = s.cpu.Cycle
-	}
 	return err
 }
 
