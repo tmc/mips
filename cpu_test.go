@@ -2,8 +2,8 @@ package mips
 
 import (
 	"fmt"
-	"testing"
 	"strings"
+	"testing"
 )
 
 var CPU_TESTS = map[string]string{
@@ -168,18 +168,7 @@ func TestSameOutputRegardlessOfFlags(t *testing.T) {
 			continue
 		}
 		cpu, _ := ParseCPUString(test)
-		if err := cpu.Run(100); err != nil{
-
-		/*
-		fmt.Println("######### PROGRAM ", testName)
-		fmt.Println("######### CODE")
-		fmt.Println(test)
-		fmt.Println("######### Result")
-		fmt.Println(cpu.String())
-		fmt.Println("######### Timing")
-		fmt.Println(cpu.RenderTiming())
-		*/
-
+		if err := cpu.Run(100); err != nil {
 			t.Fatal(testName, "nf", err)
 		}
 
@@ -189,7 +178,7 @@ func TestSameOutputRegardlessOfFlags(t *testing.T) {
 		cpu, _ = ParseCPUString(test)
 		cpu.ForwardingEnabled = true
 		cpu.BranchMode = branchModePredictTaken
-		if err := cpu.Run(100); err != nil{
+		if err := cpu.Run(100); err != nil {
 			t.Fatal(testName, "f, bt", err)
 		}
 
@@ -199,7 +188,7 @@ func TestSameOutputRegardlessOfFlags(t *testing.T) {
 		cpu, _ = ParseCPUString(test)
 		cpu.ForwardingEnabled = true
 		cpu.BranchMode = branchModePredictNotTaken
-		if err := cpu.Run(100); err != nil{
+		if err := cpu.Run(100); err != nil {
 			t.Fatal(testName, "f, bnt", err)
 		}
 
