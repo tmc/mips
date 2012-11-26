@@ -123,8 +123,8 @@ func TestBranching(t *testing.T) {
 		t.Error(err)
 	}
 	cpu.ForwardingEnabled = true
-	cpu.BranchMode = branchModePredictNotTaken
-	cpu.BranchMode = branchModePredictTaken
+	cpu.BranchMode = BranchPolicyPredictNotTaken
+	cpu.BranchMode = BranchPolicyPredictTaken
 	err = cpu.Run(35)
 	if err != nil {
 		t.Error(err)
@@ -177,7 +177,7 @@ func TestSameOutputRegardlessOfFlags(t *testing.T) {
 
 		cpu, _ = ParseCPUString(test)
 		cpu.ForwardingEnabled = true
-		cpu.BranchMode = branchModePredictTaken
+		cpu.BranchMode = BranchPolicyPredictTaken
 		if err := cpu.Run(100); err != nil {
 			t.Fatal(testName, "f, bt", err)
 		}
@@ -187,7 +187,7 @@ func TestSameOutputRegardlessOfFlags(t *testing.T) {
 
 		cpu, _ = ParseCPUString(test)
 		cpu.ForwardingEnabled = true
-		cpu.BranchMode = branchModePredictNotTaken
+		cpu.BranchMode = BranchPolicyPredictNotTaken
 		if err := cpu.Run(100); err != nil {
 			t.Fatal(testName, "f, bnt", err)
 		}

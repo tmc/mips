@@ -3,7 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"github.com/traviscline/mips"
+	"mips"
 	"io"
 	"io/ioutil"
 	"os"
