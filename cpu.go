@@ -207,5 +207,5 @@ func (lhs InstructionCache) Equals(rhs InstructionCache) bool {
 }
 
 func (cpu *CPU) String() string {
-	return fmt.Sprintf("REGISTERS: %s\nMEMORY: %s", cpu.Registers, cpu.Ram)
+	return fmt.Sprintf("REGISTERS:\n%sMEMORY:\n%s", cpu.Registers, cpu.Ram)
 }

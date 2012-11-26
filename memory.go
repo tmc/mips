@@ -18,7 +18,7 @@ func (r Memory) String() string {
 	result := ""
 	for i := 0; i < memorySize; i++ {
 		if r[i] != 0 {
-			result += fmt.Sprintf("\n%#x = %d", i, r[i])
+			result += fmt.Sprintf("%#x = %d\n", i, r[i])
 		}
 	}
 	return result

@@ -106,9 +106,6 @@ func TestRAWHazard(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	fmt.Println(cpu.RenderTiming())
-	fmt.Println(cpu)
-
 	if cpu.Ram[1] != 10 {
 		t.Fatal(cpu.Ram[1], "!=", 10)
 	}
@@ -148,16 +145,19 @@ func TestRunningBasicProgram(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	expected := `REGISTERS: 
+	expected := `REGISTERS:
 R1 = 2
 R2 = 20
 R3 = 22
 R4 = 42
-MEMORY: 
+MEMORY:
 0x0 = 7
 0x1 = 6
-0x2 = 42`
+0x2 = 42
+`
 	if cpu.String() != expected {
+		fmt.Println([]byte(cpu.String()))
+		fmt.Println([]byte(expected))
 		t.Error(fmt.Sprintf("'%s' != '%s'", cpu.String(), expected))
 	}
 }
@@ -201,6 +201,8 @@ func TestSameOutputRegardlessOfFlags(t *testing.T) {
 		if b != c {
 			t.Error("'%s' != '%s'", b, c)
 		}
+		_, _, _ = timing, timingPNT, timingPT
+		/*
 		fmt.Println("######### PROGRAM ", testName)
 		fmt.Println("######### CODE")
 		fmt.Println(test)
@@ -212,6 +214,6 @@ func TestSameOutputRegardlessOfFlags(t *testing.T) {
 		fmt.Println(timingPT)
 		fmt.Println("\n\n######### Timing Forwarding + Predict Not Taken")
 		fmt.Println(timingPNT)
-
+		*/
 	}
 }
