@@ -8,12 +8,12 @@ import (
 )
 
 // Branch prediction modes
-type CPUBranchMode int
+type BranchPolicy int
 
 const (
-	branchModeFlush = iota // no prediction, flush pipeline
-	branchModePredictTaken
-	branchModePredictNotTaken
+	BranchPolicyFlush = iota // no prediction, flush pipeline
+	BranchPolicyPredictTaken
+	BranchPolicyPredictNotTaken
 )
 
 type InstructionCache []Instruction
@@ -25,7 +25,7 @@ var (
 
 type CPU struct {
 	Registers          *Registers
-	BranchMode         CPUBranchMode
+	BranchMode         BranchPolicy
 	ForwardingEnabled  bool
 	Cycle              int
 	Ram                Memory
@@ -80,7 +80,6 @@ func (cpu *CPU) Run(maximumCycles int) (err error) {
 }
 
 func (cpu *CPU) Step() error {
-
 
 	// First Move instructions to next stage of pipeline
 	if err := cpu.Pipeline.TransferInstructions(); err != nil {

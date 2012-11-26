@@ -61,13 +61,13 @@ type Operand struct {
 type Label string
 
 type instruction struct {
-	cpu         *CPU
-	label       Label
-	text        string
-	opcode      string
-	destination Operand
-	operandA    Operand
-	operandB    Operand
+	cpu                 *CPU
+	label               Label
+	text                string
+	opcode              string
+	destination         Operand
+	operandA            Operand
+	operandB            Operand
 	destinationAcquired bool
 }
 
@@ -217,7 +217,6 @@ func (i *instruction) MEM1() error { return nil }
 func (i *instruction) MEM2() error { return nil }
 func (i *instruction) MEM3() error { return nil }
 func (i *instruction) WB() error   { return nil }
-
 
 ////////////////////////////////////////////////////////////////
 // Actual Instruction Implementations
@@ -401,7 +400,7 @@ func (i *DADDI) EX() error {
 
 type BNEZ struct {
 	instruction
-	target  Word
+	target Word
 	nextPC int
 }
 
@@ -409,11 +408,11 @@ func (i *BNEZ) IF1() (err error) {
 	//fmt.Println("BNEZ IF1")
 	i.nextPC = i.cpu.InstructionPointer
 	switch i.cpu.BranchMode {
-	case branchModeFlush:
+	case BranchPolicyFlush:
 		return BranchResolving
-	case branchModePredictNotTaken:
+	case BranchPolicyPredictNotTaken:
 		return nil
-	case branchModePredictTaken:
+	case BranchPolicyPredictTaken:
 		return nil
 	}
 	return nil
@@ -425,11 +424,11 @@ func (i *BNEZ) IF2() (err error) {
 		return err
 	}
 	switch i.cpu.BranchMode {
-	case branchModeFlush:
+	case BranchPolicyFlush:
 		return BranchResolving
-	case branchModePredictNotTaken:
+	case BranchPolicyPredictNotTaken:
 		return nil
-	case branchModePredictTaken:
+	case BranchPolicyPredictTaken:
 		//fmt.Println("Predicting taken, flushing and setting PC")
 		i.cpu.InstructionPointer = int(i.target)
 		return FlushPipeline
@@ -439,7 +438,7 @@ func (i *BNEZ) IF2() (err error) {
 
 func (i *BNEZ) IF3() (err error) {
 	//fmt.Println("BNEZ IF3")
-	if i.cpu.BranchMode == branchModeFlush {
+	if i.cpu.BranchMode == BranchPolicyFlush {
 		return BranchResolving
 	}
 	return nil
@@ -456,7 +455,7 @@ func (i *BNEZ) ID() (err error) {
 	//fmt.Println("BNEZ GO")
 	branchTaken := val != 0
 	switch i.cpu.BranchMode {
-	case branchModeFlush:
+	case BranchPolicyFlush:
 		if branchTaken {
 			//fmt.Println("setting pc!", i.target, val)
 			i.cpu.InstructionPointer = int(i.target)
@@ -467,7 +466,7 @@ func (i *BNEZ) ID() (err error) {
 			return FlushPipeline
 		}
 
-	case branchModePredictNotTaken:
+	case BranchPolicyPredictNotTaken:
 		if branchTaken {
 			//fmt.Println("prediction incorrect, setting pc and flushing!", i.target)
 			i.cpu.InstructionPointer = int(i.target)
@@ -477,7 +476,7 @@ func (i *BNEZ) ID() (err error) {
 			return nil
 		}
 
-	case branchModePredictTaken:
+	case BranchPolicyPredictTaken:
 		if branchTaken {
 			//fmt.Println("prediction correct, continuing normally!")
 			return nil

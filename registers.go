@@ -66,7 +66,7 @@ func (r Registers) String() string {
 	result := ""
 	for i := 0; i < numRegisters; i++ {
 		if r.values[i] != 0 {
-			result += fmt.Sprintf("\n%s = %d", Register(i), r.values[i])
+			result += fmt.Sprintf("%s = %d\n", Register(i), r.values[i])
 		}
 	}
 	return result
