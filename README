@@ -1,5 +1,6 @@
 mips pipeline simulator
 -----------------------
+Implements a subset of the instruction set to show pipelining.
 
 license: ISC
 

@@ -1,4 +1,4 @@
-// Simple simulator of a subset of the MIPS instruction set to show pipelining
+// Package mips is a simple simulator of a subset of the MIPS instruction set to show pipelining
 package mips
 
 import (
