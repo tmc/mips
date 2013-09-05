@@ -203,17 +203,17 @@ func TestSameOutputRegardlessOfFlags(t *testing.T) {
 		}
 		_, _, _ = timing, timingPNT, timingPT
 		/*
-		fmt.Println("######### PROGRAM ", testName)
-		fmt.Println("######### CODE")
-		fmt.Println(test)
-		fmt.Println("######### Result")
-		fmt.Println(a)
-		fmt.Println("\n\n######### Timing No Forwarding")
-		fmt.Println(timing)
-		fmt.Println("\n\n######### Timing Forwarding + Predict Taken")
-		fmt.Println(timingPT)
-		fmt.Println("\n\n######### Timing Forwarding + Predict Not Taken")
-		fmt.Println(timingPNT)
+			fmt.Println("######### PROGRAM ", testName)
+			fmt.Println("######### CODE")
+			fmt.Println(test)
+			fmt.Println("######### Result")
+			fmt.Println(a)
+			fmt.Println("\n\n######### Timing No Forwarding")
+			fmt.Println(timing)
+			fmt.Println("\n\n######### Timing Forwarding + Predict Taken")
+			fmt.Println(timingPT)
+			fmt.Println("\n\n######### Timing Forwarding + Predict Not Taken")
+			fmt.Println(timingPNT)
 		*/
 	}
 }
