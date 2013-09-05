@@ -6,3 +6,28 @@ license: ISC
 
 Features:
 - Implements three branch prediction policies
+
+Example:
+$ go test -short
+      I#1   I#2   I#3   I#4   I#5   I#6   
+      c#1   IF1   .     .     .     .     .     
+      c#2   IF2   IF1   .     .     .     .     
+      c#3   IF3   IF2   .     .     .     .     
+      c#4   ID    IF3   IF1   .     .     .     
+      c#5   EX    ID    IF2   IF1   .     .     
+      c#6   MEM1  EX    IF3   IF2   .     .     
+      c#7   MEM2  MEM1  ID    IF3   IF1   .     
+      c#8   MEM3  MEM2  EX    ID    (fl)  .     
+      c#9   WB    MEM3  MEM1  EX          IF1   
+      c#10        WB    MEM2  MEM1        IF2   
+      c#11              MEM3  MEM2        IF3   
+      c#12              WB    MEM3        ID    
+      c#13                    WB          EX    
+      c#14                                MEM1  
+      c#15                                MEM2  
+      c#16                                MEM3  
+      c#17                                WB    
+
+      PASS
+      ok	github.com/tmc/mips0.042s
+
