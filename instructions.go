@@ -7,8 +7,6 @@ import (
 
 var (
 	RAWHazard       = errors.New("RAW Hazard")
-	WARHazard       = errors.New("WAR Hazard")
-	WAWHazard       = errors.New("WAW Hazard")
 	Stall           = errors.New("Stall")
 	FlushPipeline   = errors.New("Pipeline should flush")
 	BranchResolving = errors.New("Branch is resolving")

@@ -72,28 +72,6 @@ func (p Pipeline) Execute() error {
 	//for _, stage := range p.Reverse() {
 	for i := len(p) - 1; i >= 0; i-- {
 		stage := p[i]
-		//fmt.Println("EXEC", stage, &stage)
-		if stage.GetInstruction() != nil {
-			//fmt.Println(p.cpu().Cycle, "EXECUTING STAGE", stage, stage.GetInstruction())
-		}
-
-		/*
-			if stage.String() == "IF1" || stage.String() == "IF2" {
-				if stage.Next() != nil {
-					fmt.Printf("PREXFER %s %s %s %s\n", stage, stage.GetInstruction(), stage.Next(), stage.Next().GetInstruction())
-					fmt.Printf("PREXFER* %p %p %p %p\n", stage, stage.GetInstruction(), stage.Next(), stage.Next().GetInstruction())
-				}
-			}
-
-			p.TransferInstruction(stage)
-
-			if stage.String() == "IF1" || stage.String() == "IF2" {
-				if stage.Next() != nil {
-					fmt.Printf("POSTXFER %s %s %s %s\n", stage, stage.GetInstruction(), stage.Next(), stage.Next().GetInstruction())
-					fmt.Printf("POSTXFER* %p %p %p %p\n", stage, stage.GetInstruction(), stage.Next(), stage.Next().GetInstruction())
-				}
-			}
-		*/
 
 		stage.Unstall()
 		switch err := stage.Step(); {
@@ -323,16 +301,6 @@ func (s *stage) SetInstruction(instruction *ExecutedInstruction) {
 /////////////////////////////////////////////////////////////////////////////
 // IF1
 /////////////////////////////////////////////////////////////////////////////
-
-func (s *IF1) GetInstruction() *ExecutedInstruction {
-	//fmt.Printf("IF1 GetInstruction : %p %p\n", s, s.instruction)
-	return s.instruction
-}
-
-func (s *IF1) SetInstruction(instruction *ExecutedInstruction) {
-	//fmt.Printf("IF1 SetInstruction : %p %p\n", s, instruction)
-	s.instruction = instruction
-}
 
 type IF1 struct{ stage }
 
