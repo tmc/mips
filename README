@@ -1,0 +1,7 @@
+mips pipeline simulator
+-----------------------
+
+license: ISC
+
+Features:
+- Implements three branch prediction policies
