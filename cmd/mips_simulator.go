@@ -3,12 +3,13 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"mips"
 	"io"
 	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/tmc/mips"
 )
 
 var header = `MIPS Pipeline Simulator
